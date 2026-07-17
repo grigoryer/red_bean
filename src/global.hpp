@@ -1,32 +1,85 @@
+#pragma once
+
 #include <cstdint>
 #include <array>
 #include <string_view>
+#include <string>
+
+
+const std::string kStartingFen{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"};
 
 using Bitboard = uint64_t;
 
-
 constexpr uint8_t kSquareCount = 64;
-constexpr uint8_t kPieceCount = 6; 
+constexpr uint8_t kPieceCount = 6;  
+constexpr uint8_t kColumnCount = 8;
+constexpr uint8_t kRowCount = 8;
+constexpr uint8_t kColorCount = 2;
 
+// Color Enum Class
 enum class Color : uint8_t
 {
     kWhite,
-    kBlack
+    kBlack,
+    kAll
 };
 
+// Piece Enum Class
 enum class Piece : uint8_t
 {
-    kKing,
     kQueen,
     kRook,
     kBishop,
     kKnight,
     kPawn,
+    kKing,
     kNone
 };
 
+constexpr Piece NumToPiece(size_t piece)
+{
+    return static_cast<Piece>(piece);
+};
 
-enum class Square :  uint8_t
+// Column Row and Square constant globals
+enum class Column : uint8_t
+{
+    A, B, C, D, E, F, G, H
+};
+
+constexpr std::array<Bitboard, kColumnCount> kColumnsBitboards
+{
+    // Zeroth index is the left side column and shifting left by 1 each time moves it to the next column
+    0x0101010101010101ULL,
+    (0x0101010101010101ULL << 1),
+    (0x0101010101010101ULL << 2),
+    (0x0101010101010101ULL << 3),
+    (0x0101010101010101ULL << 4),
+    (0x0101010101010101ULL << 5),
+    (0x0101010101010101ULL << 6),
+    (0x0101010101010101ULL << 7),
+};
+
+enum class Row : uint8_t
+{
+    _1, _2, _3, _4, _5, _6, _7, _8
+};
+
+constexpr std::array<Bitboard, kRowCount> kRowsBitboards
+{
+    // Zeroth index is the bottom row and shifting left by 8 times row index moves it up 8.
+    0xFFULL,
+    0xFFULL << 8,
+    0xFFULL << 16,
+    0xFFULL << 24,
+    0xFFULL << 32,
+    0xFFULL << 40,
+    0xFFULL << 48,
+    0xFFULL << 56
+};
+
+
+enum class Square : uint8_t
 {
     a1,b1,c1,d1,e1,f1,g1,h1,
     a2,b2,c2,d2,e2,f2,g2,h2,
@@ -39,7 +92,7 @@ enum class Square :  uint8_t
     noSquare
 };
 
-constexpr std::array<std::string_view, kSquareCount> kSquareToString 
+constexpr std::array<std::string_view, kSquareCount> kSquareToStringTable
 {
     "a1","b1","c1","d1","e1","f1","g1","h1",
     "a2","b2","c2","d2","e2","f2","g2","h2",
@@ -50,3 +103,91 @@ constexpr std::array<std::string_view, kSquareCount> kSquareToString
     "a7","b7","c7","d7","e7","f7","g7","h7",
     "a8","b8","c8","d8","e8","f8","g8","h8",
 };
+
+constexpr size_t ToIndex(const Square sqr) 
+{
+  return static_cast<size_t>(sqr);
+}
+
+constexpr Square ToSquare(const size_t sqr) 
+{
+  return static_cast<Square>(sqr);
+}
+
+constexpr std::string_view SquareToString(const Square sqr)
+{
+    return kSquareToStringTable.at(ToIndex(sqr));
+}
+
+constexpr Row GetSquareRow(const Square sqr)
+{
+    return static_cast<Row>(static_cast<int>(sqr) / 8);
+}
+
+constexpr Column GetSquareCol(const Square sqr)
+{
+    return static_cast<Column>(static_cast<int>(sqr) % 8);
+}
+
+constexpr Bitboard ToBitboard(Square sqr)
+{
+    return 1ULL << (static_cast<size_t>(sqr));
+}
+
+constexpr Bitboard ToBitboard(Row row)
+{
+    return kRowsBitboards.at(static_cast<size_t>(row));
+}
+
+constexpr Bitboard ToBitboard(Column col)
+{
+    return kColumnsBitboards.at(static_cast<size_t>(col));
+}
+
+
+template <typename EnumT, typename = std::enable_if_t<std::is_enum_v<EnumT>>>
+constexpr EnumT& operator++(EnumT& enu_obj)
+{
+    using Underlying = std::underlying_type_t<EnumT>; // grab underlying int type of the enum
+    enu_obj = static_cast<EnumT>(static_cast<Underlying>(enu_obj) + 1);
+    return enu_obj;
+}
+
+
+// Bit Helpers
+constexpr bool GetBit(const Bitboard& bb, const Square sqr) 
+{
+    return (bb & (1ULL << static_cast<int>(sqr))) != 0;
+}
+
+constexpr void SetBit(Bitboard& bb, const Square sqr) 
+{
+    bb |= (1ULL << static_cast<int>(sqr));
+}
+
+constexpr Square GetLsb(const Bitboard& bb) 
+{
+    return static_cast<Square>(__builtin_ctzll(bb));
+}
+
+constexpr void PopBit(Bitboard& bb, const Square sqr) 
+{
+    bb &= ~(1ULL << static_cast<int>(sqr));
+}
+
+constexpr Square PopLsb(Bitboard& bb) 
+{
+    Square sqr = GetLsb(bb);
+    bb &= ~(1ULL << static_cast<int>(sqr));
+    return sqr;
+}
+
+constexpr size_t BitCount(const Bitboard& bb) 
+{
+    return __builtin_popcountll(bb);
+}
+
+constexpr bool MoreThanOneBit(const Bitboard& bb) 
+{
+    return __builtin_popcountll(bb) > 1;
+}

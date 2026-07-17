@@ -14,4 +14,4 @@ file(GLOB SOURCES "src/*")
 
 add_executable(coffee_chess_engine ${SOURCES})
 
-target_compile_options(coffee_chess_engine PRIVATE -march=native -std=c++17)
+target_compile_options(coffee_chess_engine PRIVATE -march=native -std=c++17) #-fconstexpr-steps=100000000
