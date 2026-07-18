@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <array>
 #include <string_view>
@@ -41,6 +42,20 @@ constexpr Piece NumToPiece(size_t piece)
     return static_cast<Piece>(piece);
 };
 
+enum class CastlePerm : uint8_t
+{
+    kNone = 0,
+    kWhiteKing = 1,
+    kWhiteQueen = 2,
+    kWhiteBoth = 3,
+    kBlackKing = 4,
+    kBlackQueen = 8,
+    kBlackBoth = 12,
+    kAll = 15
+};
+
+
+
 // Column Row and Square constant globals
 enum class Column : uint8_t
 {
@@ -78,7 +93,6 @@ constexpr std::array<Bitboard, kRowCount> kRowsBitboards
     0xFFULL << 56
 };
 
-
 enum class Square : uint8_t
 {
     a1,b1,c1,d1,e1,f1,g1,h1,
@@ -89,7 +103,7 @@ enum class Square : uint8_t
     a6,b6,c6,d6,e6,f6,g6,h6,
     a7,b7,c7,d7,e7,f7,g7,h7,
     a8,b8,c8,d8,e8,f8,g8,h8,
-    noSquare
+    kNoSquare
 };
 
 constexpr std::array<std::string_view, kSquareCount> kSquareToStringTable
@@ -102,6 +116,13 @@ constexpr std::array<std::string_view, kSquareCount> kSquareToStringTable
     "a6","b6","c6","d6","e6","f6","g6","h6",
     "a7","b7","c7","d7","e7","f7","g7","h7",
     "a8","b8","c8","d8","e8","f8","g8","h8",
+};
+
+enum class GenType : uint8_t
+{
+    kQuiet, // non-captures, non-promotions
+    kNoisy, // captures + promotions
+    kAll
 };
 
 constexpr size_t ToIndex(const Square sqr) 
@@ -155,6 +176,11 @@ constexpr EnumT& operator++(EnumT& enu_obj)
 
 
 // Bit Helpers
+constexpr Color GetEnemyColor(Color color)
+{
+    return static_cast<Color>(static_cast<int>(color) ^ 1);
+}
+
 constexpr bool GetBit(const Bitboard& bb, const Square sqr) 
 {
     return (bb & (1ULL << static_cast<int>(sqr))) != 0;

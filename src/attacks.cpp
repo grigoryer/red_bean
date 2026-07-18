@@ -537,8 +537,6 @@ const std::array<std::array<Bitboard, kRookRelevantBitCount>, kSquareCount> kRoo
 namespace attacks
 {
 
-
-
 Bitboard GetPawnAttack(Color color, Square sqr)
 {
     return kPawnAttacks.at(static_cast<size_t>(color)).at(static_cast<size_t>(sqr));

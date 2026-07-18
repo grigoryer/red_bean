@@ -7,11 +7,82 @@
 #include <exception>
 #include <iostream>
 #include <string>
+#include <sstream>
 
 
+//Starting position board.
+Board::Board() : status_count_(0)
+{
+    status_history_.reserve(256);
+    ParseFenString(kStartingFen);
+}
+
+
+
+namespace {
+
+void ParseSideToMove(Status& status, const std::string& field)
+{
+    status.cur_color_ = (field == "w") ? Color::kWhite : Color::kBlack;
+}
+
+void ParseCastlingRights(Status& status, const std::string& field)
+{
+    for (char chr : field)   // field is "-" or some subset of "KQkq"
+    {
+        switch (chr)
+        {
+            case 'K':
+                status.castling_ = static_cast<CastlePerm>(
+                    static_cast<int>(status.castling_) | static_cast<int>(CastlePerm::kWhiteKing));
+                break;
+            case 'Q':
+                status.castling_ = static_cast<CastlePerm>(
+                    static_cast<int>(status.castling_) | static_cast<int>(CastlePerm::kWhiteQueen));
+                break;
+            case 'k':
+                status.castling_ = static_cast<CastlePerm>(
+                    static_cast<int>(status.castling_) | static_cast<int>(CastlePerm::kBlackKing));
+                break;
+            case 'q':
+                status.castling_ = static_cast<CastlePerm>(
+                    static_cast<int>(status.castling_) | static_cast<int>(CastlePerm::kBlackQueen));
+                break;
+            default:   // '-' falls here
+                break;
+        }
+    }
+}
+
+void ParseEnPassant(Status& status, const std::string& field)
+{
+    if (field == "-") { return; }
+    int col = field[0] - 'a';   // 'a'..'h' -> 0..7
+    int row = field[1] - '1';   // '1'..'8' -> 0..7  (note: '1', not '0')
+    status.enpassant_ = static_cast<Square>(col + (row * 8));
+}
+
+void ParseHalfMove(Status& status, const std::string& field)
+{
+    if (field == "-" || field.empty()) { return; }
+    status.half_move_ = static_cast<decltype(status.half_move_)>(std::stoi(field));
+}
+
+void ParseFullMove(Status& status, const std::string& field)
+{
+    if (field == "-" || field.empty()) { return; }
+    status.full_move_ = static_cast<decltype(status.full_move_)>(std::stoi(field));
+}
+
+}  // namespace
 
 void Board::ParseFenString(const std::string& fen_string)
 { 
+    Status temp_status;
+
+    status_history_.clear();
+    status_count_ = 0;
+
     for (auto& bb : piece_bb_) { bb = 0ULL; }
     for (auto& bb : color_bb_) { bb = 0ULL; }
 
@@ -84,17 +155,23 @@ void Board::ParseFenString(const std::string& fen_string)
         }
         itr++;
     }
-
     assert(cur_sqr == 8);
 
+    std::istringstream iss(fen_string);
+    std::string placement;
+    std::string side;
+    std::string castling;
+    std::string enpassant;
+    std::string halfmove;
+    std::string fullmove;
 
+    iss >> placement >> side >> castling >> enpassant >> halfmove >> fullmove;
 
-}   
+    ParseSideToMove(temp_status, side);
+    ParseCastlingRights(temp_status, castling);
+    ParseEnPassant(temp_status, enpassant);
+    ParseHalfMove(temp_status, halfmove);
+    ParseFullMove(temp_status, fullmove);
 
-
-namespace
-{
-
-
-
-} //namespace
+    status_history_.emplace_back(temp_status);
+}
