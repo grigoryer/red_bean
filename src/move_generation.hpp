@@ -2,7 +2,6 @@
 
 #include "attacks.hpp"
 #include "checking.hpp"
-#include "debug.hpp"
 #include "global.hpp"
 #include "move.hpp"
 #include "board.hpp"
@@ -99,10 +98,11 @@ inline void GeneratePawnNoisy(Board& board, MoveList& move_list, Bitboard target
         move_list.addMove(Move(from_sqr, to_sqr, MoveType::kPromotion, Piece::kKnight));
     }
 
+    // should work without any target
     if (board.GetCurStatus().enpassant_ != Square::kNoSquare)
     {
         Bitboard enpassant_squares = attacks::GetPawnAttack(GetEnemyColor(color), board.GetCurStatus().enpassant_) 
-                                            & board.GetColoredPieceBB(color, Piece::kPawn) & target;
+                                            & board.GetColoredPieceBB(color, Piece::kPawn);
         while (enpassant_squares != 0)
         {
             move_list.addMove(Move(PopLsb(enpassant_squares), board.GetCurStatus().enpassant_, MoveType::kEnPassant));
@@ -203,7 +203,7 @@ inline void GenerateCastling(Board& board, MoveList& move_list)
 }
 
 template<GenType gen_type>
-void GenerateKingMoves(Board& board, MoveList& move_list)
+void GenerateKingMoves(Board& board, MoveList& move_list, size_t checker_count)
 {
     Color ally_color = board.GetCurStatus().cur_color_;
     Color enemy_color = GetEnemyColor(ally_color);
@@ -219,7 +219,10 @@ void GenerateKingMoves(Board& board, MoveList& move_list)
             move_list.addMove(Move(from_sqr, PopLsb(noisy_moves), MoveType::kNormal));
         }
 
-        GenerateCastling(board, move_list);
+        if (checker_count == 0)
+        {
+            GenerateCastling(board, move_list);
+        }
     }
 
     if constexpr (gen_type == GenType::kQuiet || gen_type == GenType::kAll)
@@ -243,20 +246,32 @@ template<GenType gen_type>
 void GenerateMoves(Board& board, MoveList& move_list)
 {
     Color ally_color = board.GetCurStatus().cur_color_;
-    Bitboard checkers_board = board.GetCurStatus().checking_squares_.at(static_cast<size_t>(ally_color));
-    auto checking_count = BitCount(checkers_board);
+    Bitboard slider_checkers_board = board.GetCurStatus().checking_squares_.at(static_cast<size_t>(ally_color));
+    Bitboard leaper_checkers_board = board.GetCurStatus().leaper_checking_squares_.at(static_cast<size_t>(ally_color));
+    auto slider_cherkers = BitCount(slider_checkers_board);
+    auto leaper_cherkers = BitCount(leaper_checkers_board);
     Bitboard target{~0ULL};
 
-    pseudolegal::GenerateKingMoves<gen_type>(board, move_list);
+    pseudolegal::GenerateKingMoves<gen_type>(board, move_list, slider_cherkers + leaper_cherkers);
 
-    if (checking_count > 1) { return; } // If double check then we only generate king moves so no need to go furthur.
+    if (slider_cherkers + leaper_cherkers > 1) // If double check then we only generate king moves so no need to go furthur.
+    { 
+        CleanMoveList(board, move_list); 
+        return; 
+    } 
 
 
-    if (checking_count == 1) // If checker we need to adjust target to be between the checker and king including checker
+    if (slider_cherkers + leaper_cherkers == 1) // If checker we need to adjust target to be between the checker and king including checker
     {
-        target = between::GetRayBetweenSquares(GetLsb(board.GetColoredPieceBB(ally_color, Piece::kKing)), GetLsb(checkers_board)) // Ray between the checker and king
-        | checkers_board; // add the checker itself as well;
-        
+        if (slider_cherkers != 0)
+        {
+            // Ray between the checker and king 
+            target = between::GetRayBetweenSquares(GetLsb(board.GetColoredPieceBB(ally_color, Piece::kKing)), GetLsb(slider_checkers_board)) | slider_checkers_board; // add the checker itself as well;
+        }
+        else
+        {   // for leapers only need to add the piece itself
+            target = leaper_checkers_board;
+        }
     }
 
     pseudolegal::GenerateMajorPieceMoves<gen_type>(board, move_list, target);

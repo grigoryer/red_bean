@@ -11,6 +11,7 @@ class Status
 public:
     std::array<Bitboard, kColorCount> blocking_squares_{};
     std::array<Bitboard, kColorCount> checking_squares_{};
+    std::array<Bitboard, kColorCount> leaper_checking_squares_{};
     
     Bitboard hash_{};
     
@@ -21,7 +22,6 @@ public:
     Square enpassant_{Square::kNoSquare};
     CastlePerm castling_{CastlePerm::kNone};
     Color cur_color_{Color::kWhite};
-    bool is_check{};
 };
 
 class Board
@@ -33,10 +33,13 @@ private:
     std::array<Bitboard, kColorCount + 1> color_bb_{};  // Bitboard for each occupancy, + 1 for both sides, reduntand but will save lots of runtime calls later.
     
     std::vector<Status> status_history_;
-    uint16_t status_count_;
+    uint16_t status_count_{};
 
 public:
+
     Board();
+
+    explicit Board(const std::string& fen_string);
 
     [[nodiscard]] Bitboard GetPieceBB(const Piece piece) const
     {
@@ -58,11 +61,6 @@ public:
         return piece_list_.at(ToIndex(sqr));
     }
 
-    [[nodiscard]] Status& GetCurStatus()
-    {
-        return status_history_.at(status_count_);
-    }
-
     void SetPieceBB(const Piece piece, const Square sqr)
     {
         SetBit(piece_bb_.at(static_cast<size_t>(piece)), sqr);
@@ -73,10 +71,48 @@ public:
         SetBit(color_bb_.at(static_cast<size_t>(color)), sqr);
     }
 
+    // Remove item
+    void RemovePieceBB(const Piece piece, const Square sqr)
+    {
+        PopBit(piece_bb_.at(static_cast<size_t>(piece)), sqr);
+    }
+
+    void RemoveColorBB(const Color color, const Square sqr)
+    {
+        PopBit(color_bb_.at(static_cast<size_t>(color)), sqr);
+    }
+
+    // can be used for removing since piece::kNone is a piece
     void SetPieceOnSquare(const Piece piece, const Square sqr)
     {
         piece_list_.at(ToIndex(sqr)) = piece;
     }
-    
+
+    [[nodiscard]] Status& GetCurStatus()
+    {
+        return status_history_.at(status_count_);
+    }
+
+    [[nodiscard]] Status& GetNextStatus()
+    {
+        return status_history_.at(status_count_);
+    }
+
+    [[nodiscard]] Status& CreateNewStatus()
+    {
+        status_history_.at(status_count_ + 1) = status_history_.at(status_count_);
+
+        return status_history_.at(++status_count_);
+    }
+
+    void PopStatus()
+    {
+        --status_count_;
+    }
+
+
     void ParseFenString(const std::string& fen_string);
+    void ResetBoard();
+    void ResetBoard(const std::string& fen_string);
+
 };

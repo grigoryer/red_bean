@@ -1,7 +1,6 @@
 #include "checking.hpp"
 #include "attacks.hpp"
 #include "board.hpp"
-#include "debug.hpp"
 #include "global.hpp"
 #include <array>
 
@@ -10,12 +9,9 @@
 
 namespace between
 {
-
-
+    
 namespace 
 {
-
-
     enum class Alignment : uint8_t
     {
         kNone,
@@ -157,16 +153,36 @@ inline void SetStraightCheckers(Board& board, Status& status, Square ksqr, Color
         }
     }
 }
-} //namespace
 
-
-
-void SetSliderCheckersAndBlockers(Board& board, Status& status)
+void SetLeaperCheckers(Board& board, Status& status, Color ally_color, Color enemy_color)
 {
-    Color ally_color = status.cur_color_;
+    Bitboard& leapers = status.leaper_checking_squares_.at(static_cast<int>(ally_color));
+    Square ksqr = GetLsb(board.GetColoredPieceBB(ally_color, Piece::kKing));
+    leapers = 0;
+    
+    leapers |= board.GetColoredPieceBB(enemy_color, Piece::kKnight) & attacks::GetKnightAttack(ksqr);
+    leapers |= board.GetColoredPieceBB(enemy_color, Piece::kKing) & attacks::GetKingAttack(ksqr);
+    leapers |= board.GetColoredPieceBB(enemy_color, Piece::kPawn) & attacks::GetPawnAttack(ally_color, ksqr);
+
+}
+
+void SetSliderCheckersAndBlockers(Board& board, Status& status, Color ally_color)
+{
+    status.checking_squares_.at(static_cast<int>(ally_color)) = 0;
+    status.blocking_squares_.at(static_cast<int>(ally_color)) = 0;
+    
     Square ksqr = GetLsb(board.GetColoredPieceBB(ally_color, Piece::kKing));
     SetDiagonalCheckers(board, status, ksqr, ally_color);
     SetStraightCheckers(board, status, ksqr, ally_color);
+}
+
+} //namespace
+
+void SetCheckersAndBlockers(Board& board, Status& status)
+{
+    Color ally_color = status.cur_color_;
+    SetSliderCheckersAndBlockers(board, status, ally_color);
+    SetLeaperCheckers(board, status, ally_color, GetEnemyColor(ally_color));
 }
 
 Bitboard GetRayBetweenSquares(Square sqr_1, Square sqr_2)

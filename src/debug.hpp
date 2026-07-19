@@ -7,9 +7,9 @@
 #include <cstddef>
 #include <iostream>
 
+
 static const std::array<char, (static_cast<size_t>(kPieceCount * 2))> kPieceChars{'Q', 'R', 'B', 'N', 'P', 'K',
                                                                                   'q', 'r', 'b', 'n', 'p', 'k' };
-
 inline void PrintBitboard(const Bitboard& bb)
 {
     std::cout << "\n";
@@ -116,8 +116,7 @@ inline void PrintStatus(const Status& status)
 {
     std::cout << "=== Status ===\n";
 
-    std::cout << "Side to move : "
-              << (status.cur_color_ == Color::kWhite ? "White" : "Black") << "\n";
+    std::cout << "Side to move : " << (status.cur_color_ == Color::kWhite ? "White" : "Black") << "\n";
 
     // Castling rights as KQkq (dash if none)
     std::cout << "Castling     : ";
@@ -138,10 +137,21 @@ inline void PrintStatus(const Status& status)
     // Captured piece (only meaningful after a capture make-move)
     std::cout << "Captured     : "
               << (status.captured_piece_ == Piece::kNone
-                      ? 'X'
+                      ? '-'
                       : kPieceChars.at(static_cast<int>(status.captured_piece_))) << "\n";
 
     std::cout << "Half move    : " << static_cast<int>(status.half_move_) << "\n";
     std::cout << "Full move    : " << static_cast<int>(status.full_move_) << "\n";
+    std::cout << "Check?       : " << static_cast<int>(BitCount(status.checking_squares_.at(static_cast<int>(status.cur_color_)))) + static_cast<int>(BitCount(status.leaper_checking_squares_.at(static_cast<int>(status.cur_color_)))) << "\n";
+    std::cout << "Blockers.    : " << static_cast<int>(BitCount(status.blocking_squares_.at(static_cast<int>(status.cur_color_)))) << "\n";
+
+    if (BitCount(status.blocking_squares_.at(static_cast<int>(status.cur_color_))))
+    {
+        PrintBitboard(status.blocking_squares_.at(static_cast<int>(status.cur_color_)));
+    }
+    std::cout << "Hash         : " << std::hex << status.hash_ << std::dec << "\n";
     std::cout << "==============\n";
 }
+
+
+

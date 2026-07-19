@@ -1,7 +1,7 @@
 #include "move_generation.hpp"
 #include "attacks.hpp"
-#include "debug.hpp"
 #include "global.hpp"
+#include <cassert>
 
 namespace generation::legal
 {
@@ -10,10 +10,24 @@ bool IsMoveLegal(Board& board, Move move, Bitboard blockers)
 {
     const Status& status = board.GetCurStatus();
     const Color ally_color = status.cur_color_;
-    const Bitboard checkers = status.checking_squares_.at(static_cast<size_t>(ally_color));
-
+    const Color enemy_color = GetEnemyColor(ally_color);
     const bool is_blocker = (ToBitboard(move.GetFrom()) & blockers) != 0;
 
+    auto IsSquareAttacked = [&](Square sqr, Bitboard occ)
+    {   
+        Bitboard attackers{};
+
+        attackers |= board.GetColoredPieceBB(enemy_color, Piece::kQueen) & attacks::GetQueenAttack(occ, sqr);
+        attackers |= board.GetColoredPieceBB(enemy_color, Piece::kRook) & attacks::GetRookAttack(occ, sqr);
+        attackers |= board.GetColoredPieceBB(enemy_color, Piece::kBishop) & attacks::GetBishopAttack(occ, sqr);
+        attackers |= board.GetColoredPieceBB(enemy_color, Piece::kKnight) & attacks::GetKnightAttack(sqr);
+        attackers |= board.GetColoredPieceBB(enemy_color, Piece::kKing) & attacks::GetKingAttack(sqr);
+        attackers |= board.GetColoredPieceBB(enemy_color, Piece::kPawn) & attacks::GetPawnAttack(ally_color, sqr);
+        
+        return (attackers & occ) != 0;
+    };
+
+    //PrintMove(move);
     if (is_blocker) 
     { 
         return (ToBitboard(move.GetTo()) & between::GetRayThroughSquares(GetLsb(board.GetColoredPieceBB(ally_color, Piece::kKing)), move.GetFrom())) != 0; 
@@ -21,23 +35,8 @@ bool IsMoveLegal(Board& board, Move move, Bitboard blockers)
 
     if (board.GetPieceOnSquare(move.GetFrom()) == Piece::kKing) // king, need to check if it walks into check during regular and castle
     {
-        auto IsSquareAttacked = [&](Square sqr)
-        {   
-            Bitboard attackers{};
-            Color enemy_color = GetEnemyColor(ally_color);
-
-            attackers |= board.GetColoredPieceBB(enemy_color, Piece::kQueen) & attacks::GetQueenAttack(board.GetColorBB(Color::kAll), sqr);
-            attackers |= board.GetColoredPieceBB(enemy_color, Piece::kRook) & attacks::GetRookAttack(board.GetColorBB(Color::kAll), sqr);
-            attackers |= board.GetColoredPieceBB(enemy_color, Piece::kBishop) & attacks::GetBishopAttack(board.GetColorBB(Color::kAll), sqr);
-            attackers |= board.GetColoredPieceBB(enemy_color, Piece::kKnight) & attacks::GetKnightAttack(sqr);
-            attackers |= board.GetColoredPieceBB(enemy_color, Piece::kKing) & attacks::GetKingAttack(sqr);
-            attackers |= board.GetColoredPieceBB(ally_color, Piece::kPawn) & attacks::GetPawnAttack(enemy_color, sqr);
-            
-            return (attackers != 0);
-        };
-
-    
-        if (IsSquareAttacked(move.GetTo()))
+        Bitboard kingless_occupancy = board.GetColorBB(Color::kAll) & ~ToBitboard(move.GetFrom());
+        if (IsSquareAttacked(move.GetTo(), kingless_occupancy))
         {
             return false;
         }
@@ -51,8 +50,16 @@ bool IsMoveLegal(Board& board, Move move, Bitboard blockers)
             int castle_dir = (GetSquareCol(move.GetTo()) == Column::C ? 1 : -1);
             auto transit = static_cast<Square>(static_cast<int>(move.GetTo()) + castle_dir);
             return (board.GetCurStatus().checking_squares_.at(static_cast<size_t>(ally_color)) == 0)
-                && !IsSquareAttacked(transit);
+                && !IsSquareAttacked(transit, kingless_occupancy);
         }
+    }   
+
+    if (move.IsEnPassant())
+    {
+        auto captured_square{static_cast<Square>(static_cast<int>(move.GetTo()) + (ally_color == Color::kWhite ? -8 : 8))};
+        Bitboard occ = (board.GetColorBB(Color::kAll) & ~ToBitboard(move.GetFrom()) & ~ToBitboard(captured_square)) | ToBitboard(move.GetTo());;
+
+        return !IsSquareAttacked(GetLsb(board.GetColoredPieceBB(ally_color, Piece::kKing)), occ);
     }
 
     return true;

@@ -6,7 +6,7 @@
 
 namespace between
 {
-    void SetSliderCheckersAndBlockers(Board& board, Status& status);
+    void SetCheckersAndBlockers(Board& board, Status& status);
     Bitboard GetRayBetweenSquares(Square sqr_1, Square sqr_2);
     Bitboard GetRayThroughSquares(Square sqr_1, Square sqr_2);
 } //namespace between

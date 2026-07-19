@@ -1,6 +1,8 @@
 #include "board.hpp"
+#include "checking.hpp"
 #include "debug.hpp"
 #include "global.hpp"
+#include "zobrist.hpp"
 #include <cassert>
 #include <cctype>
 #include <cstddef>
@@ -11,10 +13,14 @@
 
 
 //Starting position board.
-Board::Board() : status_count_(0)
+Board::Board()
 {
-    status_history_.reserve(256);
-    ParseFenString(kStartingFen);
+    ResetBoard();
+}
+
+Board::Board(const std::string& fen_string)
+{
+    ResetBoard(fen_string);
 }
 
 
@@ -76,12 +82,12 @@ void ParseFullMove(Status& status, const std::string& field)
 
 }  // namespace
 
+// resets state to a clean, sets state count to 0.
+// Resets all bitboards and piece board to be empty
+// parses fen string and creates the state at 0 and board.
 void Board::ParseFenString(const std::string& fen_string)
 { 
-    Status temp_status;
-
-    status_history_.clear();
-    status_count_ = 0;
+    Status& temp_status = status_history_.at(status_count_);
 
     for (auto& bb : piece_bb_) { bb = 0ULL; }
     for (auto& bb : color_bb_) { bb = 0ULL; }
@@ -174,4 +180,19 @@ void Board::ParseFenString(const std::string& fen_string)
     ParseFullMove(temp_status, fullmove);
 
     status_history_.emplace_back(temp_status);
+}
+
+void Board::ResetBoard(const std::string& fen_string)
+{
+    status_history_.clear();
+    status_history_.resize(256);
+    status_count_ = 0;
+    ParseFenString(fen_string);
+    Zobrist::InitailizBoardHash(*this);
+    between::SetCheckersAndBlockers(*this, GetCurStatus());
+}
+
+void Board::ResetBoard()
+{
+    ResetBoard(kStartingFen);
 }
