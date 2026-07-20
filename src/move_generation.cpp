@@ -6,12 +6,16 @@
 namespace generation::legal
 {
 
-bool IsMoveLegal(Board& board, Move move, Bitboard blockers)
+inline bool IsMoveLegal(Board& board, Move move, Bitboard blockers)
 {
     const Status& status = board.GetCurStatus();
     const Color ally_color = status.cur_color_;
     const Color enemy_color = GetEnemyColor(ally_color);
-    const bool is_blocker = (ToBitboard(move.GetFrom()) & blockers) != 0;
+    
+    if ((ToBitboard(move.GetFrom()) & blockers) != 0) 
+    { 
+        return (ToBitboard(move.GetTo()) & between::GetRayThroughSquares(GetLsb(board.GetColoredPieceBB(ally_color, Piece::kKing)), move.GetFrom())) != 0; 
+    }
 
     auto IsSquareAttacked = [&](Square sqr, Bitboard occ)
     {   
@@ -26,12 +30,6 @@ bool IsMoveLegal(Board& board, Move move, Bitboard blockers)
         
         return (attackers & occ) != 0;
     };
-
-    //PrintMove(move);
-    if (is_blocker) 
-    { 
-        return (ToBitboard(move.GetTo()) & between::GetRayThroughSquares(GetLsb(board.GetColoredPieceBB(ally_color, Piece::kKing)), move.GetFrom())) != 0; 
-    }
 
     if (board.GetPieceOnSquare(move.GetFrom()) == Piece::kKing) // king, need to check if it walks into check during regular and castle
     {
@@ -76,8 +74,7 @@ void CleanMoveList(Board& board, MoveList& move_list)
         const Move move = move_list.list.at(ind);
         if (IsMoveLegal(board, move, blockers))
         {
-            move_list.list.at(legal_count) = move;
-            ++legal_count;
+            move_list.list[legal_count++] = move;
         }
     }
     move_list.move_count = legal_count;

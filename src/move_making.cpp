@@ -35,32 +35,44 @@ constexpr std::array<uint8_t, kSquareCount> InitializeCastleMaskArray()
 
 inline constexpr std::array<uint8_t, kSquareCount> kCastleMaskArray = InitializeCastleMaskArray();
 
-
-inline void RemovePiece(Board &board, Piece piece, Square sqr, Color color)
+inline void RemovePieceNoHash(Board &board, Piece piece, Square sqr, Color color)
 {
     board.RemovePieceBB(piece, sqr);
     board.RemoveColorBB(color, sqr);
     board.RemoveColorBB(Color::kAll, sqr);
     board.SetPieceOnSquare(Piece::kNone, sqr);
+}
+inline void RemovePiece(Board &board, Piece piece, Square sqr, Color color, Hash& hash)
+{
+    RemovePieceNoHash(board, piece, sqr, color);
+    hash ^= Zobrist::ZobPiece(piece, sqr, color);
+}
 
-    board.GetCurStatus().hash_ ^= Zobrist::ZobPiece(piece, sqr, color);
-}   
-
-inline void SetPiece(Board &board, Piece piece, Square sqr, Color color)
+inline void SetPieceNoHash(Board &board, Piece piece, Square sqr, Color color)
 {
     board.SetPieceBB(piece, sqr);
     board.SetColorBB(color, sqr);
     board.SetColorBB(Color::kAll, sqr);
     board.SetPieceOnSquare(piece, sqr);
+}
 
-    board.GetCurStatus().hash_ ^= Zobrist::ZobPiece(piece, sqr, color);
-}   
-
-inline void MovePiece(Board &board, Piece piece, Square from_sqr, Color color, Square to_sqr)
+inline void SetPiece(Board &board, Piece piece, Square sqr, Color color, Hash& hash)
 {
-    RemovePiece(board, piece, from_sqr, color);
-    SetPiece(board, piece, to_sqr, color);
-}   
+    SetPieceNoHash(board, piece, sqr, color);
+    hash ^= Zobrist::ZobPiece(piece, sqr, color);
+}
+
+inline void MovePieceNoHash(Board &board, Piece piece, Square from_sqr, Color color, Square to_sqr)
+{
+    RemovePieceNoHash(board, piece, from_sqr, color);
+    SetPieceNoHash(board, piece, to_sqr, color);
+}
+
+inline void MovePiece(Board &board, Piece piece, Square from_sqr, Color color, Square to_sqr, Hash& hash)
+{
+    RemovePiece(board, piece, from_sqr, color, hash);
+    SetPiece(board, piece, to_sqr, color, hash);
+}
 
 inline void ChangeColor(Status& status)
 {
@@ -91,7 +103,7 @@ inline void SetCastlPerm(Status& status, CastlePerm perm)
 
 
 // Needs to 
-void make_move(Board& board, Move move)
+void MakeMove(Board& board, Move move)
 {   
     auto& status = board.CreateNewStatus();
     Square from_sqr{move.GetFrom()};
@@ -102,6 +114,7 @@ void make_move(Board& board, Move move)
 
     Color ally_color{status.cur_color_};
     Color enemy_color{GetEnemyColor(ally_color)};
+    Hash& hash = status.hash_;
 
     bool reset_halfclock{false};
     status.half_move_++;
@@ -113,10 +126,9 @@ void make_move(Board& board, Move move)
         SetCastlPerm(status, new_perm);
     }
 
-
     if (status.captured_piece_ != Piece::kNone) // remove captured piece color.
     {
-        RemovePiece(board, status.captured_piece_, to_sqr, enemy_color);
+        RemovePiece(board, status.captured_piece_, to_sqr, enemy_color, hash);
         reset_halfclock = true; // reset the half move since capture.
     }
 
@@ -133,18 +145,18 @@ void make_move(Board& board, Move move)
             rook_to = static_cast<Square>(static_cast<int>(rook_to) + (ally_color == Color::kWhite ? 0 : 56));  // 56 == a8 or last row.
             rook_from = static_cast<Square>(static_cast<int>(rook_from) + (ally_color == Color::kWhite ? 0 : 56));
 
-            MovePiece(board, Piece::kRook, rook_from, ally_color, rook_to);
+            MovePiece(board, Piece::kRook, rook_from, ally_color, rook_to, hash);
         }
         else if (move.IsEnPassant())
         {
             int shift = (ally_color == Color::kWhite ? -8 : 8);
             auto captured_square{static_cast<Square>(static_cast<int>(to_sqr) + shift)};
-            RemovePiece(board, Piece::kPawn, captured_square, enemy_color);
+            RemovePiece(board, Piece::kPawn, captured_square, enemy_color, hash);
         }
         else if (move.IsPromotion())
         {
-            RemovePiece(board, Piece::kPawn, from_sqr, ally_color);
-            SetPiece(board, move.GetPromo(), to_sqr, ally_color);
+            RemovePiece(board, Piece::kPawn, from_sqr, ally_color, hash);
+            SetPiece(board, move.GetPromo(), to_sqr, ally_color, hash);
             ChangeColor(status);
             between::SetCheckersAndBlockers(board, status);
             status.half_move_ = 0;
@@ -165,14 +177,13 @@ void make_move(Board& board, Move move)
     }
 
     if (reset_halfclock) { status.half_move_ = 0; }
-    MovePiece(board, piece, from_sqr, ally_color, to_sqr);
+    MovePiece(board, piece, from_sqr, ally_color, to_sqr, hash);
     ChangeColor(status);
-    between::SetCheckersAndBlockers(board, status);
 }
 
 
 
-void undo_move(Board& board, Move move)
+void UndoMove(Board& board, Move move)
 {
     // Status on top of the stack is the one make_move created for this move.
     auto& status = board.GetCurStatus();
@@ -186,13 +197,13 @@ void undo_move(Board& board, Move move)
     // Put the moved piece back on its origin square.
     if (move.IsPromotion())
     {
-        RemovePiece(board, move.GetPromo(), to_sqr, ally_color);
-        SetPiece(board, Piece::kPawn, from_sqr, ally_color);
+        RemovePieceNoHash(board, move.GetPromo(), to_sqr, ally_color);
+        SetPieceNoHash(board, Piece::kPawn, from_sqr, ally_color);
     }
     else
     {
         Piece piece{board.GetPieceOnSquare(to_sqr)};
-        MovePiece(board, piece, to_sqr, ally_color, from_sqr);
+        MovePieceNoHash(board, piece, to_sqr, ally_color, from_sqr);
     }
 
     if (move.IsCastle())
@@ -203,19 +214,19 @@ void undo_move(Board& board, Move move)
         Square rook_from = col_a_rook ? Square::a1 : Square::h1;
         rook_to = static_cast<Square>(static_cast<int>(rook_to) + (ally_color == Color::kWhite ? 0 : 56));
         rook_from = static_cast<Square>(static_cast<int>(rook_from) + (ally_color == Color::kWhite ? 0 : 56));
-        MovePiece(board, Piece::kRook, rook_to, ally_color, rook_from);
+        MovePieceNoHash(board, Piece::kRook, rook_to, ally_color, rook_from);
     }
     else if (move.IsEnPassant())
     {
         // The victim pawn was not on to_sqr; recompute its square.
         int shift = (ally_color == Color::kWhite ? -8 : 8);
         auto captured_square{static_cast<Square>(static_cast<int>(to_sqr) + shift)};
-        SetPiece(board, Piece::kPawn, captured_square, enemy_color);
+        SetPieceNoHash(board, Piece::kPawn, captured_square, enemy_color);
     }
     else if (status.captured_piece_ != Piece::kNone)
     {
         // Covers normal captures and promotion-captures alike.
-        SetPiece(board, status.captured_piece_, to_sqr, enemy_color);
+        SetPieceNoHash(board, status.captured_piece_, to_sqr, enemy_color);
     }
 
     // Everything else (hash, castling, ep, clocks, checkers/blockers) comes back with the pop.

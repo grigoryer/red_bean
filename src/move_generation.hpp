@@ -245,9 +245,12 @@ void CleanMoveList(Board& board, MoveList& move_list);
 template<GenType gen_type>
 void GenerateMoves(Board& board, MoveList& move_list)
 {
-    Color ally_color = board.GetCurStatus().cur_color_;
-    Bitboard slider_checkers_board = board.GetCurStatus().checking_squares_.at(static_cast<size_t>(ally_color));
-    Bitboard leaper_checkers_board = board.GetCurStatus().leaper_checking_squares_.at(static_cast<size_t>(ally_color));
+    Status& status = board.GetCurStatus();
+    between::SetCheckersAndBlockers(board, status);
+
+    Color ally_color = status.cur_color_;
+    Bitboard slider_checkers_board = status.checking_squares_.at(static_cast<size_t>(ally_color));
+    Bitboard leaper_checkers_board = status.leaper_checking_squares_.at(static_cast<size_t>(ally_color));
     auto slider_cherkers = BitCount(slider_checkers_board);
     auto leaper_cherkers = BitCount(leaper_checkers_board);
     Bitboard target{~0ULL};

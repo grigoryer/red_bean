@@ -51,30 +51,29 @@ const std::array<Hash, kSquareCount> enpassant_hash = InitHashTable<kSquareCount
 }  // namespace
 
 
-Hash ZobEnpassant(Square ep_sqr)
+inline Hash ZobEnpassant(Square ep_sqr)
 {
     if (ep_sqr == Square::kNoSquare)
     {
         return 0;
     }
-    return enpassant_hash.at(static_cast<size_t>(ep_sqr));
+    return enpassant_hash[static_cast<size_t>(ep_sqr)];
 }
 
-Hash ZobPiece(Piece piece, Square sqr, Color color)
+inline Hash ZobPiece(Piece piece, Square sqr, Color color)
 {
-    return piece_hash.at(static_cast<size_t>(color)).at(static_cast<size_t>(piece)).at(static_cast<size_t>(sqr)); 
+    return piece_hash[static_cast<size_t>(color)][static_cast<size_t>(piece)][static_cast<size_t>(sqr)]; 
 }
 
-Hash ZobCastling(CastlePerm castling)
+inline Hash ZobCastling(CastlePerm castling)
 {
     auto index = static_cast<size_t>(castling);
-    assert(index <= 16);
-    return castling_hash.at(index);
+    return castling_hash[index];
 }
     
-Hash ZobColor(Color color)
+inline Hash ZobColor(Color color)
 {
-    return color_hash.at(static_cast<size_t>(color));
+    return color_hash[static_cast<size_t>(color)];
 }
 
 void InitailizBoardHash(Board &board)

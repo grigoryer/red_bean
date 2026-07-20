@@ -6,9 +6,9 @@
 
 namespace Zobrist
 {
-    Hash ZobEnpassant(Square ep_sqr);   
-    Hash ZobPiece(Piece piece, Square sqr, Color color);
-    Hash ZobCastling(CastlePerm castling);
-    Hash ZobColor(Color color);
+    inline Hash ZobEnpassant(Square ep_sqr);   
+    inline Hash ZobPiece(Piece piece, Square sqr, Color color);
+    inline Hash ZobCastling(CastlePerm castling);
+    inline Hash ZobColor(Color color);
     void InitailizBoardHash(Board &board);
 }

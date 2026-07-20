@@ -5,21 +5,39 @@
 #include "perft.hpp"
 #include "move_making.hpp"
 #include "move_generation.hpp"
+#include <chrono>
 #include <cstddef>
 #include <iostream>
+#include <ratio>
 
 
 int main()
 {
     
-    Board board{};
+    Board board{kPerft2};
     
-    PrintPieceBoard(board);
-    PrintStatus(board.GetCurStatus());
+    constexpr size_t kExpectedNodes = 193690690;
+    constexpr int kDepth = 5;
+    constexpr size_t kRounds = 3;
 
-    perft::PerftDivide(board, 6);
+    std::chrono::milliseconds total_time{};
 
-    PrintStatus(board.GetCurStatus());
+    for (size_t i = 0; i < kRounds; ++i)
+    {
+        auto start = std::chrono::high_resolution_clock::now();
+        auto nodes = perft::Perft(board, kDepth);
+        auto end = std::chrono::high_resolution_clock::now();
+
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+        total_time += elapsed;
+
+
+        std::cout << "Run " << (i + 1) << ": " << elapsed.count() << " ms"
+                << (nodes == kExpectedNodes ? "" : "  MISMATCH")
+                << '\n';
+    }
+
+    std::cout << "Avg: " << (total_time.count() / static_cast<int>(kRounds)) << "\n";
 
     return 0;
 }

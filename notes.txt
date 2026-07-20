@@ -1,0 +1,16 @@
+Perft2 depth 5 
+-O1 optmization flag
+no bulk counting
+All correct nodes: 193690690
+
+
+    SetCheckersAndBlockers optmiizaiton 
+        unordered -                     113489
+        ordered -                       77104       : Push GetAttacks after allignedment check.
+        redundant GetQueenBB -          75455       : Call Queen Check once and pass it instead of two seperate calls.
+        Cleaning up function calls -    71430       : Remove leaper/slider indv calls.
+
+    Generate Checks in MoveGenerator    48633 
+    using [], in board.hpp              46066
+    using [], in zobrist.hpp            44556
+    using [], in attakcs.cpp            43769

@@ -3,7 +3,7 @@
 #include "global.hpp"
 #include <array>
 #include <cstddef>
-#include <vector>
+#include <array>
 
 
 class Status 
@@ -32,7 +32,7 @@ private:
     std::array<Bitboard, kPieceCount> piece_bb_{};      // Bitboard for each piece
     std::array<Bitboard, kColorCount + 1> color_bb_{};  // Bitboard for each occupancy, + 1 for both sides, reduntand but will save lots of runtime calls later.
     
-    std::vector<Status> status_history_;
+    std::array<Status, 256> status_history_;
     uint16_t status_count_{};
 
 public:
@@ -43,12 +43,12 @@ public:
 
     [[nodiscard]] Bitboard GetPieceBB(const Piece piece) const
     {
-        return piece_bb_.at(static_cast<size_t>(piece));
+        return piece_bb_[(static_cast<size_t>(piece))];
     }
 
     [[nodiscard]] Bitboard GetColorBB(const Color color) const
     {
-        return color_bb_.at(static_cast<size_t>(color));
+        return color_bb_[(static_cast<size_t>(color))];
     }
 
     [[nodiscard]] Bitboard GetColoredPieceBB(const Color color, const Piece piece) const
@@ -58,51 +58,50 @@ public:
 
     [[nodiscard]] Piece GetPieceOnSquare(const Square sqr) const
     {
-        return piece_list_.at(ToIndex(sqr));
+        return piece_list_[(ToIndex(sqr))];
     }
 
     void SetPieceBB(const Piece piece, const Square sqr)
     {
-        SetBit(piece_bb_.at(static_cast<size_t>(piece)), sqr);
+        SetBit(piece_bb_[(static_cast<size_t>(piece))], sqr);
     }
 
     void SetColorBB(const Color color, const Square sqr)
     {
-        SetBit(color_bb_.at(static_cast<size_t>(color)), sqr);
+        SetBit(color_bb_[static_cast<size_t>(color)], sqr);
     }
 
     // Remove item
     void RemovePieceBB(const Piece piece, const Square sqr)
     {
-        PopBit(piece_bb_.at(static_cast<size_t>(piece)), sqr);
+        PopBit(piece_bb_[static_cast<size_t>(piece)], sqr);
     }
 
     void RemoveColorBB(const Color color, const Square sqr)
     {
-        PopBit(color_bb_.at(static_cast<size_t>(color)), sqr);
+        PopBit(color_bb_[static_cast<size_t>(color)], sqr);
     }
 
     // can be used for removing since piece::kNone is a piece
     void SetPieceOnSquare(const Piece piece, const Square sqr)
     {
-        piece_list_.at(ToIndex(sqr)) = piece;
+        piece_list_[ToIndex(sqr)] = piece;
     }
 
     [[nodiscard]] Status& GetCurStatus()
     {
-        return status_history_.at(status_count_);
+        return status_history_[status_count_];
     }
 
     [[nodiscard]] Status& GetNextStatus()
     {
-        return status_history_.at(status_count_);
+        return status_history_[status_count_];
     }
 
     [[nodiscard]] Status& CreateNewStatus()
     {
-        status_history_.at(status_count_ + 1) = status_history_.at(status_count_);
-
-        return status_history_.at(++status_count_);
+        status_history_[status_count_ + 1] = status_history_[status_count_];
+        return status_history_[++status_count_];
     }
 
     void PopStatus()

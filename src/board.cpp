@@ -179,13 +179,11 @@ void Board::ParseFenString(const std::string& fen_string)
     ParseHalfMove(temp_status, halfmove);
     ParseFullMove(temp_status, fullmove);
 
-    status_history_.emplace_back(temp_status);
+    status_history_.at(0) = temp_status;
 }
 
 void Board::ResetBoard(const std::string& fen_string)
 {
-    status_history_.clear();
-    status_history_.resize(256);
     status_count_ = 0;
     ParseFenString(fen_string);
     Zobrist::InitailizBoardHash(*this);

@@ -539,19 +539,19 @@ namespace attacks
 
 Bitboard GetPawnAttack(Color color, Square sqr)
 {
-    return kPawnAttacks.at(static_cast<size_t>(color)).at(static_cast<size_t>(sqr));
+    return kPawnAttacks[static_cast<size_t>(color)][static_cast<size_t>(sqr)];
 };
 
 
 Bitboard GetKingAttack(Square sqr)
 {
-    return kKingAttacks.at(static_cast<size_t>(sqr));
+    return kKingAttacks[static_cast<size_t>(sqr)];
 };
 
 
 Bitboard GetKnightAttack(Square sqr)
 {
-    return kKnightAttacks.at(static_cast<size_t>(sqr));
+    return kKnightAttacks[static_cast<size_t>(sqr)];
 };
 
 
@@ -559,9 +559,9 @@ Bitboard GetBishopAttack(Bitboard occ, Square sqr)
 {
     size_t sqr_index = ToIndex(sqr);
     occ &= MaskBishopAttacks(sqr);  
-    size_t index{(occ * bishop_magics.at(sqr_index)) >> bishop_shift.at(sqr_index)}; 
+    size_t index{(occ * bishop_magics[sqr_index]) >> bishop_shift[sqr_index]}; 
 
-    return kBishopAttacks.at(sqr_index).at(index);
+    return kBishopAttacks[sqr_index][index];
 };
 
 
@@ -569,9 +569,9 @@ Bitboard GetRookAttack(Bitboard occ, Square sqr)
 {
     size_t sqr_index = ToIndex(sqr);
     occ &= MaskRookAttacks(sqr);  
-    size_t index{(occ * rook_magics.at(sqr_index)) >> rook_shift.at(sqr_index)}; 
+    size_t index{(occ * rook_magics[sqr_index]) >> rook_shift[sqr_index]}; 
 
-    return kRookAttacks.at(sqr_index).at(index);
+    return kRookAttacks[sqr_index][index];
 };
 
 
@@ -581,10 +581,10 @@ Bitboard GetQueenAttack(Bitboard occ, Square sqr)
     Bitboard bishop_occ = occ & MaskBishopAttacks(sqr);
     Bitboard rook_occ = occ & MaskRookAttacks(sqr);
 
-    size_t bishop_index{(bishop_occ * bishop_magics.at(sqr_index)) >> bishop_shift.at(sqr_index)}; 
-    size_t rook_index{(rook_occ * rook_magics.at(sqr_index)) >> rook_shift.at(sqr_index)}; 
+    size_t bishop_index{(bishop_occ * bishop_magics[sqr_index]) >> bishop_shift[sqr_index]};
+    size_t rook_index{(rook_occ * rook_magics[sqr_index]) >> rook_shift[sqr_index]}; 
 
-    return kBishopAttacks.at(sqr_index).at(bishop_index) | kRookAttacks.at(sqr_index).at(rook_index);
+    return kBishopAttacks[sqr_index][bishop_index] | kRookAttacks[sqr_index][rook_index];
 };
 
 } // namespace attacks

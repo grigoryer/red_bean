@@ -23,6 +23,8 @@ constexpr uint8_t kColumnCount = 8;
 constexpr uint8_t kRowCount = 8;
 constexpr uint8_t kColorCount = 2;
 
+constexpr Bitboard kFullBB = 0xFFFFFFFFFFFFFFFFULL;
+constexpr Bitboard kEmptyBB = 0ULL;
 // Color Enum Class
 enum class Color : uint8_t
 {

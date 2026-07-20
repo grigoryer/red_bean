@@ -65,6 +65,6 @@ public:
 
     void addMove(Move move)
     {
-        list.at(move_count++) = move;
+        list[move_count++] = move;
     }
 };

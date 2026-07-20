@@ -7,6 +7,6 @@
 
 namespace moving
 {
-    void make_move(Board& board, Move move);
-    void undo_move(Board& board, Move move);
+    void MakeMove(Board& board, Move move);
+    void UndoMove(Board& board, Move move);
 }

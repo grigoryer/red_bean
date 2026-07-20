@@ -26,18 +26,18 @@ namespace perft
     }
     // Bulk counting: at depth 1 the answer is just the number of legal moves,
     // no need to make/unmake them. Big speedup.
-    if (depth == 1)
+    if (depth == 0)
     {
-        return moves.move_count;
+        return 1;//moves.move_count;
     }
 
     uint64_t nodes = 0;
 
     for (size_t i = 0; i < moves.move_count; ++i)
     {
-        moving::make_move(board, moves.list.at(i));
+        moving::MakeMove(board, moves.list.at(i));
         nodes += Perft(board, depth - 1);
-        moving::undo_move(board, moves.list.at(i));
+        moving::UndoMove(board, moves.list.at(i));
     }
     return nodes;
 }
@@ -54,9 +54,9 @@ inline uint64_t PerftDivide(Board& board, int depth)
     {
         const Move move = moves.list.at(i);
 
-        moving::make_move(board, move);
+        moving::MakeMove(board, move);
         uint64_t nodes = (depth <= 1) ? 1 : Perft(board, depth - 1);
-        moving::undo_move(board, move);
+        moving::UndoMove(board, move);
 
         // UCI long algebraic: e2e4, e1g1, e7e8q — matches stockfish's output.
         std::cout << SquareToString(move.GetFrom()) << SquareToString(move.GetTo());
@@ -80,7 +80,7 @@ inline uint64_t PerftDivide(Board& board, int depth)
 }
 
 
-[[nodiscard]] inline uint64_t PerftDebug(Board& board, int depth)
+inline uint64_t PerftDebug(Board& board, int depth)
 {
     if (depth == 0)
     {
@@ -90,7 +90,7 @@ inline uint64_t PerftDivide(Board& board, int depth)
     MoveList moves;
     generation::legal::GenerateMoves<GenType::kAll>(board, moves);
 
-    if (depth == 1)
+    if (depth == 0)
     {
         return moves.move_count;
     }
@@ -103,7 +103,7 @@ inline uint64_t PerftDivide(Board& board, int depth)
         std::cout << "\ndepth " << depth << " | making move " << (i + 1) << "/" << moves.move_count << ": ";
         PrintMove(move);
 
-        moving::make_move(board, move);
+        moving::MakeMove(board, move);
 
         PrintPieceBoard(board);
         PrintStatus(board.GetCurStatus());
@@ -113,7 +113,13 @@ inline uint64_t PerftDivide(Board& board, int depth)
 
         nodes += PerftDebug(board, depth - 1);
 
-        moving::undo_move(board, move);
+        moving::UndoMove(board, move);
+
+        PrintPieceBoard(board);
+        PrintStatus(board.GetCurStatus());
+
+        std::cout << "[enter to continue]";
+        std::cin.get();
     }
     return nodes;
 }
