@@ -84,10 +84,10 @@ const std::array<std::array<Bitboard, kSquareCount>, kSquareCount> between_ray_a
 
 inline void SetDiagonalCheckers(Board& board, Status& status, Bitboard occ, Square ksqr, Color color, Bitboard enemy_bishops)
 {
-    // We need to create a ray between king and enemy slider.
+     // We need to create a ray between king and enemy slider.
     // Get the diagonal sliders and see if the are on the same line.
     Color enemy_color = GetEnemyColor(color);
-    
+
     // Go through all bishops 
     while (enemy_bishops > 0)
     {
@@ -98,21 +98,19 @@ inline void SetDiagonalCheckers(Board& board, Status& status, Bitboard occ, Squa
             continue;
         }
 
-        Bitboard enemy_attack = attacks::GetBishopAttack(occ, enemy_sqr);
+        Bitboard between_enemy = GetRayBetweenSquares(ksqr, enemy_sqr) & occ;
+
         // If the piece is checking it cannot be blocked no need to waste time on the blocker.
-        if ((enemy_attack & ToBitboard(ksqr)) != 0) 
+        if (between_enemy == 0) 
         {
-            status.checking_squares_.at(static_cast<int>(color)) |= ToBitboard(enemy_sqr);
+            status.checking_squares_ |= ToBitboard(enemy_sqr);
             continue;
         }
 
-        // Add blocker
-        Bitboard blockers = between_ray_array.at(ToIndex(ksqr)).at(ToIndex(enemy_sqr)) & occ;
-
         // if total pieces on line is 1 and that piece is ally color, add it to blockers.
-        if (BitCount(blockers) == 1 && ((blockers & board.GetColorBB(color)) != 0))
+        if (BitCount(between_enemy) == 1 && ((between_enemy & board.GetColorBB(color)) != 0))
         {
-            status.blocking_squares_.at(static_cast<int>(color)) |= blockers;
+            status.blocking_squares_ |= between_enemy;
         }
     }
 }
@@ -133,21 +131,20 @@ inline void SetStraightCheckers(Board& board, Status& status, Bitboard occ, Squa
         {
             continue;
         }
-        Bitboard enemy_attack = attacks::GetRookAttack(occ, enemy_sqr);
+
+        Bitboard between_enemy = GetRayBetweenSquares(ksqr, enemy_sqr) & occ;
+
         // If the piece is checking it cannot be blocked no need to waste time on the blocker.
-        if ((enemy_attack & ToBitboard(ksqr)) != 0) 
+        if (between_enemy == 0) 
         {
-            status.checking_squares_.at(static_cast<int>(color)) |= ToBitboard(enemy_sqr);
+            status.checking_squares_ |= ToBitboard(enemy_sqr);
             continue;
         }
 
-        // Add blocker
-        Bitboard blockers = between_ray_array.at(ToIndex(ksqr)).at(ToIndex(enemy_sqr)) & occ;
-
         // if total pieces on line is 1 and that piece is ally color, add it to blockers.
-        if (BitCount(blockers) == 1 && ((blockers & board.GetColorBB(color)) != 0))
+        if (BitCount(between_enemy) == 1 && ((between_enemy & board.GetColorBB(color)) != 0))
         {
-            status.blocking_squares_.at(static_cast<int>(color)) |= blockers;
+            status.blocking_squares_ |= between_enemy;
         }
     }
 }
@@ -159,9 +156,9 @@ void SetCheckersAndBlockers(Board& board, Status& status)
     Color ally_color = status.cur_color_;
     Color enemy_color = GetEnemyColor(status.cur_color_);
     
-    status.checking_squares_.at(static_cast<int>(ally_color)) = 0;
-    status.blocking_squares_.at(static_cast<int>(ally_color)) = 0;
-    Bitboard& leapers = status.leaper_checking_squares_.at(static_cast<int>(ally_color)) = 0;
+    status.checking_squares_ = 0;
+    status.blocking_squares_ = 0;
+    Bitboard& leapers = status.leaper_checking_squares_ = 0;
     
     Square ksqr = GetLsb(board.GetColoredPieceBB(ally_color, Piece::kKing));
     Bitboard occ = board.GetColorBB(Color::kAll);

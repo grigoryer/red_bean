@@ -1,6 +1,7 @@
 Perft2 depth 5 
 -O1 optmization flag
 no bulk counting
+Average of 3 runs
 All correct nodes: 193690690
 
 
@@ -14,3 +15,8 @@ All correct nodes: 193690690
     using [], in board.hpp              46066
     using [], in zobrist.hpp            44556
     using [], in attakcs.cpp            43769
+
+    move.cpp, no checking in promo      43369
+    Update set checking to ray betweem  43112
+    Change move/movelist initalization  38686
+    ordering changes in MoveGenerator   38080

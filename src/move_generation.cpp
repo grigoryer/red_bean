@@ -6,6 +6,8 @@
 namespace generation::legal
 {
 
+
+
 inline bool IsMoveLegal(Board& board, Move move, Bitboard blockers)
 {
     const Status& status = board.GetCurStatus();
@@ -20,10 +22,9 @@ inline bool IsMoveLegal(Board& board, Move move, Bitboard blockers)
     auto IsSquareAttacked = [&](Square sqr, Bitboard occ)
     {   
         Bitboard attackers{};
-
-        attackers |= board.GetColoredPieceBB(enemy_color, Piece::kQueen) & attacks::GetQueenAttack(occ, sqr);
-        attackers |= board.GetColoredPieceBB(enemy_color, Piece::kRook) & attacks::GetRookAttack(occ, sqr);
-        attackers |= board.GetColoredPieceBB(enemy_color, Piece::kBishop) & attacks::GetBishopAttack(occ, sqr);
+        Bitboard queens = board.GetColoredPieceBB(enemy_color, Piece::kQueen);
+        attackers |= (board.GetColoredPieceBB(enemy_color, Piece::kRook) | queens) & attacks::GetRookAttack(occ, sqr);
+        attackers |= (board.GetColoredPieceBB(enemy_color, Piece::kBishop) | queens) & attacks::GetBishopAttack(occ, sqr);
         attackers |= board.GetColoredPieceBB(enemy_color, Piece::kKnight) & attacks::GetKnightAttack(sqr);
         attackers |= board.GetColoredPieceBB(enemy_color, Piece::kKing) & attacks::GetKingAttack(sqr);
         attackers |= board.GetColoredPieceBB(enemy_color, Piece::kPawn) & attacks::GetPawnAttack(ally_color, sqr);
@@ -47,7 +48,7 @@ inline bool IsMoveLegal(Board& board, Move move, Bitboard blockers)
             // if queen side we need to check square + 1 and king side - 1;
             int castle_dir = (GetSquareCol(move.GetTo()) == Column::C ? 1 : -1);
             auto transit = static_cast<Square>(static_cast<int>(move.GetTo()) + castle_dir);
-            return (board.GetCurStatus().checking_squares_.at(static_cast<size_t>(ally_color)) == 0)
+            return (board.GetCurStatus().checking_squares_ == 0)
                 && !IsSquareAttacked(transit, kingless_occupancy);
         }
     }   
@@ -67,7 +68,8 @@ void CleanMoveList(Board& board, MoveList& move_list)
 {
     size_t legal_count{};
     const Color ally_color = board.GetCurStatus().cur_color_;
-    const Bitboard& blockers = board.GetCurStatus().blocking_squares_.at(static_cast<size_t>(ally_color));
+    const Color enemy_color = GetEnemyColor(ally_color);
+    const Bitboard& blockers = board.GetCurStatus().blocking_squares_;
 
     for (size_t ind = 0; ind < move_list.move_count; ++ind)
     {

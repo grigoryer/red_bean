@@ -142,12 +142,12 @@ inline void PrintStatus(const Status& status)
 
     std::cout << "Half move    : " << static_cast<int>(status.half_move_) << "\n";
     std::cout << "Full move    : " << static_cast<int>(status.full_move_) << "\n";
-    std::cout << "Check?       : " << static_cast<int>(BitCount(status.checking_squares_.at(static_cast<int>(status.cur_color_)))) + static_cast<int>(BitCount(status.leaper_checking_squares_.at(static_cast<int>(status.cur_color_)))) << "\n";
-    std::cout << "Blockers.    : " << static_cast<int>(BitCount(status.blocking_squares_.at(static_cast<int>(status.cur_color_)))) << "\n";
+    std::cout << "Check?       : " << static_cast<int>(BitCount(status.checking_squares_)) + static_cast<int>(BitCount(status.leaper_checking_squares_)) << "\n";
+    std::cout << "Blockers.    : " << static_cast<int>(BitCount(status.blocking_squares_)) << "\n";
 
-    if (BitCount(status.blocking_squares_.at(static_cast<int>(status.cur_color_))))
+    if (BitCount(status.blocking_squares_))
     {
-        PrintBitboard(status.blocking_squares_.at(static_cast<int>(status.cur_color_)));
+        PrintBitboard(status.blocking_squares_);
     }
     std::cout << "Hash         : " << std::hex << status.hash_ << std::dec << "\n";
     std::cout << "==============\n";

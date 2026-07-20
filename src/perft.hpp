@@ -35,9 +35,9 @@ namespace perft
 
     for (size_t i = 0; i < moves.move_count; ++i)
     {
-        moving::MakeMove(board, moves.list.at(i));
+        moving::MakeMove(board, moves.list[i]);
         nodes += Perft(board, depth - 1);
-        moving::UndoMove(board, moves.list.at(i));
+        moving::UndoMove(board, moves.list[i]);
     }
     return nodes;
 }

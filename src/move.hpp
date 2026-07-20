@@ -53,14 +53,14 @@ private:
         return static_cast<uint16_t>(static_cast<int>(piece) - static_cast<int>(Piece::kQueen));
     }
 
-    uint16_t data_{};
+    uint16_t data_;
 };
 
 
 class MoveList
 {
 public:
-    std::array<Move, 256> list{};
+    std::array<Move, 256> list;
     size_t move_count{};
 
     void addMove(Move move)

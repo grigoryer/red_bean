@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <iostream>
 #include <ratio>
+#include <string>
 
 
 int main()
@@ -18,7 +19,7 @@ int main()
     
     constexpr size_t kExpectedNodes = 193690690;
     constexpr int kDepth = 5;
-    constexpr size_t kRounds = 3;
+    constexpr size_t kRounds = 5;
 
     std::chrono::milliseconds total_time{};
 
@@ -33,7 +34,7 @@ int main()
 
 
         std::cout << "Run " << (i + 1) << ": " << elapsed.count() << " ms"
-                << (nodes == kExpectedNodes ? "" : "  MISMATCH")
+                << (nodes == kExpectedNodes ? " " : "  MISMATCH: " + std::to_string(nodes))
                 << '\n';
     }
 

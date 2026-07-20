@@ -9,9 +9,9 @@
 class Status 
 {
 public:
-    std::array<Bitboard, kColorCount> blocking_squares_{};
-    std::array<Bitboard, kColorCount> checking_squares_{};
-    std::array<Bitboard, kColorCount> leaper_checking_squares_{};
+    Bitboard blocking_squares_;
+    Bitboard checking_squares_;
+    Bitboard leaper_checking_squares_;
     
     Bitboard hash_{};
     

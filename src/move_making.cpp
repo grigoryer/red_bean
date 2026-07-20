@@ -158,7 +158,6 @@ void MakeMove(Board& board, Move move)
             RemovePiece(board, Piece::kPawn, from_sqr, ally_color, hash);
             SetPiece(board, move.GetPromo(), to_sqr, ally_color, hash);
             ChangeColor(status);
-            between::SetCheckersAndBlockers(board, status);
             status.half_move_ = 0;
             return;
         }

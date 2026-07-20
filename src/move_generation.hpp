@@ -21,14 +21,15 @@ inline void GeneratePawnQuiet(Board& board, MoveList& move_list, Bitboard target
 
     constexpr Bitboard promo_rank = ToBitboard((color == Color::kWhite) ? Row::_7 : Row::_2);
     constexpr Bitboard double_rank = ToBitboard((color == Color::kWhite) ? Row::_4 : Row::_5);
+    const Bitboard free_spots = ~board.GetColorBB(Color::kAll);
     constexpr int from_shift = (color == Color::kWhite) ? -8 : 8;
 
     //Shift depending on color, either up or down. And if it is not occupied at it do the bitboard.
     pawn_spots = pawn_spots & ~promo_rank; // remove the promo rank pawns immediatly th
-    Bitboard single_move = ~board.GetColorBB(Color::kAll) & ((color == Color::kWhite) ?  pawn_spots << 8 : pawn_spots >> 8);
+    Bitboard single_move = free_spots & ((color == Color::kWhite) ?  pawn_spots << 8 : pawn_spots >> 8);
 
     //Shift again for double move but only keep if it is on the double rank and not occupied.
-    Bitboard double_move = ~board.GetColorBB(Color::kAll) & double_rank & ((color == Color::kWhite) ? single_move << 8 : single_move >> 8);
+    Bitboard double_move = free_spots & double_rank & ((color == Color::kWhite) ? single_move << 8 : single_move >> 8);
 
     single_move &= target;
     double_move &= target;
@@ -56,12 +57,13 @@ inline void GeneratePawnNoisy(Board& board, MoveList& move_list, Bitboard target
 {
     Bitboard pawn_spots = board.GetColoredPieceBB(color, Piece::kPawn);
     Bitboard enemy_targets = board.GetColorBB(GetEnemyColor(color));
+    const Bitboard free_spots = ~board.GetColorBB(Color::kAll);
 
     // promotion items. Quiet promotion is in here.
     constexpr Bitboard promo_rank = ToBitboard((color == Color::kWhite) ? Row::_7 : Row::_2);
     constexpr int from_shift = (color == Color::kWhite) ? -8 : 8;
     Bitboard quiet_promo_pawns = (pawn_spots & promo_rank);
-    quiet_promo_pawns = ~board.GetColorBB(Color::kAll) & ((color == Color::kWhite) ? quiet_promo_pawns << 8 : quiet_promo_pawns >> 8);
+    quiet_promo_pawns = free_spots & ((color == Color::kWhite) ? quiet_promo_pawns << 8 : quiet_promo_pawns >> 8);
 
     quiet_promo_pawns &= target;
 
@@ -131,19 +133,26 @@ void GenerateForPiece(Board& board, MoveList& move_list, Bitboard occ, Color all
     while (piece_spots != 0)
     {
         Square from_sqr = PopLsb(piece_spots);
-        Bitboard piece_moves = attacks::getPieceAttack<piece>(occ, from_sqr, ally_color) & ~board.GetColorBB(ally_color);
+        Bitboard piece_moves = attacks::getPieceAttack<piece>(occ, from_sqr, ally_color) & target;
 
-        if constexpr (gen_type == GenType::kNoisy || gen_type == GenType::kAll)
+        if constexpr (gen_type == GenType::kNoisy)
         {
-            Bitboard noisy_moves = piece_moves & board.GetColorBB(enemy_color) & target; // captures
+            Bitboard noisy_moves = piece_moves & board.GetColorBB(enemy_color); // captures
             while (noisy_moves != 0)
             {
                 move_list.addMove(Move(from_sqr, PopLsb(noisy_moves), MoveType::kNormal));
             }
         }
-        if constexpr (gen_type == GenType::kQuiet || gen_type == GenType::kAll)
+        else if constexpr (gen_type == GenType::kAll) // All moves, no need to check enemy.
         {
-            Bitboard quiet_moves = piece_moves & ~board.GetColorBB(enemy_color) & target; // non-captures
+            while (piece_moves != 0)
+            {
+                move_list.addMove(Move(from_sqr, PopLsb(piece_moves), MoveType::kNormal));
+            }
+        }
+        else if constexpr (gen_type == GenType::kQuiet)
+        {
+            Bitboard quiet_moves = piece_moves & ~board.GetColorBB(enemy_color); // non-captures, called rarely mostly just for correctness
             while (quiet_moves != 0)
             {
                 move_list.addMove(Move(from_sqr, PopLsb(quiet_moves), MoveType::kNormal));
@@ -249,11 +258,11 @@ void GenerateMoves(Board& board, MoveList& move_list)
     between::SetCheckersAndBlockers(board, status);
 
     Color ally_color = status.cur_color_;
-    Bitboard slider_checkers_board = status.checking_squares_.at(static_cast<size_t>(ally_color));
-    Bitboard leaper_checkers_board = status.leaper_checking_squares_.at(static_cast<size_t>(ally_color));
+    Bitboard slider_checkers_board = status.checking_squares_;
+    Bitboard leaper_checkers_board = status.leaper_checking_squares_;
     auto slider_cherkers = BitCount(slider_checkers_board);
     auto leaper_cherkers = BitCount(leaper_checkers_board);
-    Bitboard target{~0ULL};
+    Bitboard target{kFullBB & (~board.GetColorBB(ally_color))};
 
     pseudolegal::GenerateKingMoves<gen_type>(board, move_list, slider_cherkers + leaper_cherkers);
 
