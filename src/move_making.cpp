@@ -1,4 +1,3 @@
-#include "checking.hpp"
 #include "move.hpp"
 #include "global.hpp"
 #include "board.hpp"
@@ -62,16 +61,31 @@ inline void SetPiece(Board &board, Piece piece, Square sqr, Color color, Hash& h
     hash ^= Zobrist::ZobPiece(piece, sqr, color);
 }
 
+// inline void MovePieceNoHash(Board &board, Piece piece, Square from_sqr, Color color, Square to_sqr)
+// {
+//     RemovePieceNoHash(board, piece, from_sqr, color);
+//     SetPieceNoHash(board, piece, to_sqr, color);
+// }
+
+// inline void MovePiece(Board &board, Piece piece, Square from_sqr, Color color, Square to_sqr, Hash& hash)
+// {
+//     RemovePiece(board, piece, from_sqr, color, hash);
+//     SetPiece(board, piece, to_sqr, color, hash);
+// }
+
+
 inline void MovePieceNoHash(Board &board, Piece piece, Square from_sqr, Color color, Square to_sqr)
 {
-    RemovePieceNoHash(board, piece, from_sqr, color);
-    SetPieceNoHash(board, piece, to_sqr, color);
+    board.MovePieceBB(piece, from_sqr, to_sqr, color);
+    board.SetPieceOnSquare(Piece::kNone, from_sqr);
+    board.SetPieceOnSquare(piece, to_sqr);
 }
 
 inline void MovePiece(Board &board, Piece piece, Square from_sqr, Color color, Square to_sqr, Hash& hash)
 {
-    RemovePiece(board, piece, from_sqr, color, hash);
-    SetPiece(board, piece, to_sqr, color, hash);
+    MovePieceNoHash(board, piece, from_sqr, color, to_sqr);
+    hash ^= Zobrist::ZobPiece(piece, from_sqr, color);
+    hash ^= Zobrist::ZobPiece(piece, to_sqr, color);
 }
 
 inline void ChangeColor(Status& status)
@@ -103,7 +117,7 @@ inline void SetCastlPerm(Status& status, CastlePerm perm)
 
 
 // Needs to 
-void MakeMove(Board& board, Move move)
+void MakeMove(Board& board, Move move) //NOLINT
 {   
     auto& status = board.CreateNewStatus();
     Square from_sqr{move.GetFrom()};
@@ -202,7 +216,7 @@ void UndoMove(Board& board, Move move)
     else
     {
         Piece piece{board.GetPieceOnSquare(to_sqr)};
-        MovePieceNoHash(board, piece, to_sqr, ally_color, from_sqr);
+        MovePieceNoHash(board, piece, to_sqr, ally_color, from_sqr); //NOLINT
     }
 
     if (move.IsCastle())

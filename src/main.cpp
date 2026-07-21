@@ -12,19 +12,14 @@
 #include <string>
 
 
-int main()
-{
-    
-    Board board{kPerft2};
-    
-    constexpr size_t kExpectedNodes = 193690690;
+int main() 
+{    
     constexpr int kDepth = 5;
-    constexpr size_t kRounds = 5;
+    constexpr size_t kRounds = 1;
 
     std::chrono::milliseconds total_time{};
 
-    for (size_t i = 0; i < kRounds; ++i)
-    {
+        Board board{};
         auto start = std::chrono::high_resolution_clock::now();
         auto nodes = perft::Perft(board, kDepth);
         auto end = std::chrono::high_resolution_clock::now();
@@ -32,13 +27,8 @@ int main()
         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
         total_time += elapsed;
 
-
-        std::cout << "Run " << (i + 1) << ": " << elapsed.count() << " ms"
-                << (nodes == kExpectedNodes ? " " : "  MISMATCH: " + std::to_string(nodes))
-                << '\n';
-    }
-
-    std::cout << "Avg: " << (total_time.count() / static_cast<int>(kRounds)) << "\n";
+    std::cout << nodes << "\n";
+    std::cout << total_time.count();
 
     return 0;
 }

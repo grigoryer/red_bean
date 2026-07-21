@@ -7,30 +7,31 @@ namespace generation::legal
 {
 
 
-
-inline bool IsMoveLegal(Board& board, Move move, Bitboard blockers)
+inline bool IsMoveLegal(Board& board, const Status& status, const Move move, const Bitboard blockers, const Color ally_color, const Color enemy_color)
 {
-    const Status& status = board.GetCurStatus();
-    const Color ally_color = status.cur_color_;
-    const Color enemy_color = GetEnemyColor(ally_color);
-    
     if ((ToBitboard(move.GetFrom()) & blockers) != 0) 
     { 
         return (ToBitboard(move.GetTo()) & between::GetRayThroughSquares(GetLsb(board.GetColoredPieceBB(ally_color, Piece::kKing)), move.GetFrom())) != 0; 
     }
-
+    
+    // place here for edge case of double push, we need to remove the attackign pawn in case of en passant.
+    // captured by ref; EP narrows this in place
+    Bitboard enemy_pawns = board.GetColoredPieceBB(enemy_color, Piece::kPawn); 
+    
     auto IsSquareAttacked = [&](Square sqr, Bitboard occ)
     {   
-        Bitboard attackers{};
+
+        if (board.GetColoredPieceBB(enemy_color, Piece::kKnight) & attacks::GetKnightAttack(sqr)) { return true; } 
+        if (board.GetColoredPieceBB(enemy_color, Piece::kKing) & attacks::GetKingAttack(sqr)) { return true; }
+        if (enemy_pawns & attacks::GetPawnAttack(ally_color, sqr)) { return true; }
+
         Bitboard queens = board.GetColoredPieceBB(enemy_color, Piece::kQueen);
-        attackers |= (board.GetColoredPieceBB(enemy_color, Piece::kRook) | queens) & attacks::GetRookAttack(occ, sqr);
-        attackers |= (board.GetColoredPieceBB(enemy_color, Piece::kBishop) | queens) & attacks::GetBishopAttack(occ, sqr);
-        attackers |= board.GetColoredPieceBB(enemy_color, Piece::kKnight) & attacks::GetKnightAttack(sqr);
-        attackers |= board.GetColoredPieceBB(enemy_color, Piece::kKing) & attacks::GetKingAttack(sqr);
-        attackers |= board.GetColoredPieceBB(enemy_color, Piece::kPawn) & attacks::GetPawnAttack(ally_color, sqr);
+        if ((board.GetColoredPieceBB(enemy_color, Piece::kRook) | queens) & attacks::GetRookAttack(occ, sqr)) { return true; }
+        if ((board.GetColoredPieceBB(enemy_color, Piece::kBishop) | queens) & attacks::GetBishopAttack(occ, sqr)) { return true; }
         
-        return (attackers & occ) != 0;
+        return false;
     };
+
 
     if (board.GetPieceOnSquare(move.GetFrom()) == Piece::kKing) // king, need to check if it walks into check during regular and castle
     {
@@ -48,15 +49,17 @@ inline bool IsMoveLegal(Board& board, Move move, Bitboard blockers)
             // if queen side we need to check square + 1 and king side - 1;
             int castle_dir = (GetSquareCol(move.GetTo()) == Column::C ? 1 : -1);
             auto transit = static_cast<Square>(static_cast<int>(move.GetTo()) + castle_dir);
-            return (board.GetCurStatus().checking_squares_ == 0)
+            return (status.checking_squares_ == 0)
                 && !IsSquareAttacked(transit, kingless_occupancy);
         }
     }   
 
     if (move.IsEnPassant())
-    {
+    {   
         auto captured_square{static_cast<Square>(static_cast<int>(move.GetTo()) + (ally_color == Color::kWhite ? -8 : 8))};
-        Bitboard occ = (board.GetColorBB(Color::kAll) & ~ToBitboard(move.GetFrom()) & ~ToBitboard(captured_square)) | ToBitboard(move.GetTo());;
+
+        Bitboard occ = (board.GetColorBB(Color::kAll) & ~ToBitboard(move.GetFrom()) & ~ToBitboard(captured_square)) | ToBitboard(move.GetTo());
+        enemy_pawns &= ~ToBitboard(captured_square);
 
         return !IsSquareAttacked(GetLsb(board.GetColoredPieceBB(ally_color, Piece::kKing)), occ);
     }
@@ -67,14 +70,16 @@ inline bool IsMoveLegal(Board& board, Move move, Bitboard blockers)
 void CleanMoveList(Board& board, MoveList& move_list)
 {
     size_t legal_count{};
-    const Color ally_color = board.GetCurStatus().cur_color_;
+    const Status& status = board.GetCurStatus();
+    const Color ally_color = status.cur_color_;
     const Color enemy_color = GetEnemyColor(ally_color);
+
     const Bitboard& blockers = board.GetCurStatus().blocking_squares_;
 
     for (size_t ind = 0; ind < move_list.move_count; ++ind)
     {
         const Move move = move_list.list.at(ind);
-        if (IsMoveLegal(board, move, blockers))
+        if (IsMoveLegal(board, status, move, blockers, ally_color, enemy_color))
         {
             move_list.list[legal_count++] = move;
         }

@@ -26,9 +26,9 @@ namespace perft
     }
     // Bulk counting: at depth 1 the answer is just the number of legal moves,
     // no need to make/unmake them. Big speedup.
-    if (depth == 0)
+    if (depth == 1)
     {
-        return 1;//moves.move_count;
+        return moves.move_count;
     }
 
     uint64_t nodes = 0;
@@ -122,6 +122,49 @@ inline uint64_t PerftDebug(Board& board, int depth)
         std::cin.get();
     }
     return nodes;
+}
+
+void profile_perft()
+{
+
+    struct TestCase 
+    {
+        std::string fen;
+        int depth;
+        size_t expected;
+        const char* name;
+    };
+
+    const TestCase tests[] = 
+    {
+        {kStartingFen, 6, 119060324, "Perft1"},
+        {kPerft2, 5, 193690690, "Perft2"},
+        {kPerft3, 7, 178633661, "Perft3"},
+        {kPerft4, 6, 706045033 , "Perft4"},
+        {kPerft5, 5, 89941194 , "Perft5"},
+        {kPerft6, 5,  164075551 , "Perft6" }
+    };
+
+    constexpr size_t kRounds = 3;
+
+    for (const auto& test : tests)
+    {
+        std::cout << "=== " << test.name << " (depth " << test.depth << ") ===\n";
+        std::chrono::milliseconds total_time{};
+        for (size_t i = 0; i < kRounds; ++i)
+        {
+            Board board{test.fen};
+            auto start = std::chrono::high_resolution_clock::now();
+            auto nodes = perft::Perft(board, test.depth);
+            auto end = std::chrono::high_resolution_clock::now();
+            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+            total_time += elapsed;
+            std::cout << "Run " << (i + 1) << ": " << elapsed.count() << " ms"
+                    << (nodes == test.expected ? " " : "  MISMATCH: " + std::to_string(nodes))
+                    << '\n';
+        }
+        std::cout << "Avg: " << (total_time.count() / static_cast<int>(kRounds)) << "\n\n";
+    }
 }
 
 } // namespace perft

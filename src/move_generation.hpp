@@ -104,7 +104,8 @@ inline void GeneratePawnNoisy(Board& board, MoveList& move_list, Bitboard target
     if (board.GetCurStatus().enpassant_ != Square::kNoSquare)
     {
         Bitboard enpassant_squares = attacks::GetPawnAttack(GetEnemyColor(color), board.GetCurStatus().enpassant_) 
-                                            & board.GetColoredPieceBB(color, Piece::kPawn);
+                                    & board.GetColoredPieceBB(color, Piece::kPawn);
+
         while (enpassant_squares != 0)
         {
             move_list.addMove(Move(PopLsb(enpassant_squares), board.GetCurStatus().enpassant_, MoveType::kEnPassant));
@@ -127,7 +128,7 @@ void GeneratePawnMoves(Board& board, MoveList& move_list, Bitboard target)
 }
 
 template<Piece piece, GenType gen_type>
-void GenerateForPiece(Board& board, MoveList& move_list, Bitboard occ, Color ally_color, Color enemy_color, Bitboard target)
+void GenerateForPiece(Board& board, MoveList& move_list, Bitboard occ, Color ally_color, Color enemy_color, Bitboard target) //NOLINT
 {
     Bitboard piece_spots = board.GetColoredPieceBB(ally_color, piece);
     while (piece_spots != 0)

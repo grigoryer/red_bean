@@ -19,4 +19,6 @@ All correct nodes: 193690690
     move.cpp, no checking in promo      43369
     Update set checking to ray betweem  43112
     Change move/movelist initalization  38686
-    ordering changes in MoveGenerator   38080
+    ordering changes in MoveGenerator   37889           : Rerun on pc with lets programs.
+    half moving with mask               31406
+    early returns                       31336 

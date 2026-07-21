@@ -9,9 +9,9 @@
 class Status 
 {
 public:
-    Bitboard blocking_squares_;
-    Bitboard checking_squares_;
-    Bitboard leaper_checking_squares_;
+    Bitboard blocking_squares_{};
+    Bitboard checking_squares_{};
+    Bitboard leaper_checking_squares_{};
     
     Bitboard hash_{};
     
@@ -59,6 +59,14 @@ public:
     [[nodiscard]] Piece GetPieceOnSquare(const Square sqr) const
     {
         return piece_list_[(ToIndex(sqr))];
+    }
+
+    void MovePieceBB(const Piece piece, const Square from_sqr, const Square to_sqr, const Color color)
+    {
+        Bitboard mask = ToBitboard(from_sqr) | ToBitboard(to_sqr);
+        piece_bb_[static_cast<size_t>(piece)] ^= mask;
+        color_bb_[static_cast<size_t>(color)] ^= mask;
+        color_bb_[static_cast<size_t>(Color::kAll)] ^= mask;
     }
 
     void SetPieceBB(const Piece piece, const Square sqr)
