@@ -9,7 +9,7 @@
 namespace perft
 {
 
-[[nodiscard]] inline uint64_t Perft(Board& board, int depth)
+uint64_t Perft(Board& board, int depth)
 {
     if (depth == 0)
     {
@@ -124,7 +124,7 @@ inline uint64_t PerftDebug(Board& board, int depth)
     return nodes;
 }
 
-void profile_perft()
+void ProfilePerft()
 {
 
     struct TestCase 

@@ -9,7 +9,6 @@
 namespace Zobrist
 {
     
-
 template <size_t N>
 inline std::array<Hash, N> InitHashTable(uint64_t seed)
 {

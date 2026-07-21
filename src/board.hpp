@@ -35,6 +35,8 @@ private:
     std::array<Status, 256> status_history_;
     uint16_t status_count_{};
 
+    bool is_mate{false};
+
 public:
 
     Board();

@@ -1,0 +1,43 @@
+Testing Search Speed through game tree
+
+Rules:
+1. Must return to same state/hash
+2. Must not crash
+3. kPerft2 position - midgame
+4. Move returned must be legal!
+5. Must be on -O1, no -flto -O3, -march-native is fine.
+6. Must also count nodes searched.
+7. Eval is white piece type count - black piece type count. 
+8. No checks on other system processes. So other firefox tabs and applications can be open.
+
+
+
+Basic Alpha beta depth 6 unordered GenType::kAll
+
+    Best Move: e2 a6 Normal
+    Best Score: 10
+    Nodes: 362491616
+    Time: 119366ms
+
+    Notes:      Basic Starting time.
+    
+
+Basic Alpha beta depth 6 semi-ordered GenType::kNoisy then GenType::kQuiet
+
+    Best Move: e2 a6 Normal
+    Best Score: 10
+    Nodes: 12111425
+    Time: 5894ms
+
+    Notes:      Way better since pruning more braches with higher scores earlier on. 350 million less nodes checked!
+
+
+NegaMax (combine min and max player functions into one) depth 6 semi-ordered GenType::kNoisy then GenType::kQuiet
+
+    Best Move: e2 a6 Normal
+    Best Score: 10
+    Nodes: 12111425
+    Time: 6004ms
+
+    Notes:      Since more of a visual and code readability change the node cout has be the same, timing is around the same as well. 
+                In longer pahts this will also speed up since less jumping.
