@@ -1,5 +1,9 @@
 #pragma once
 #include "global.hpp"
+#include "search_globals.hpp"
+#include <cstdint>
+
+
 
 enum class MoveType : uint8_t
 {
@@ -56,6 +60,14 @@ private:
     uint16_t data_;
 };
 
+class ExtMove : public Move
+{
+public:
+    MoveScore score{};
+
+    ExtMove() = default;
+    explicit ExtMove(Move move) : Move(move) {  }
+};
 
 class MoveList
 {
@@ -65,6 +77,6 @@ public:
 
     void addMove(Move move)
     {
-        list[move_count++] = move;
+        list[move_count++] = move; 
     }
 };

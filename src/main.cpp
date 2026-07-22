@@ -14,10 +14,8 @@
 #include <string>
 
 
-auto TestSearchSpeed()
+auto TestSearchSpeed(Board board, Search& searcher)
 {
-    Board board{kPerft2};
-    Search searcher(board);
 
     PrintPieceBoard(board);
     PrintStatus(board.GetCurStatus());
@@ -28,9 +26,12 @@ auto TestSearchSpeed()
 
     std::cout << "\nNodes: " << searcher.nodes_searched;
     std::cout << "\nTime: " << elapsed.count() << "ms";
-    PrintPieceBoard(board);
-    PrintStatus(board.GetCurStatus());
-    PrintMove(move);
+
+    std::cout << "\n\nTable Hits: " << searcher.ttable_->node_hits;
+    std::cout << "\nTable Mises: " << searcher.nodes_searched - searcher.ttable_->node_hits;
+    std::cout << "\nHit Rate: " << 100 * static_cast<double>(searcher.ttable_->node_hits) /  static_cast<double>(searcher.nodes_searched);
+
+    searcher.ttable_->ProfileTableSpread();
 
     return elapsed;
 }
@@ -39,28 +40,9 @@ auto TestSearchSpeed()
 int main() 
 {    
 
-    auto time = TestSearchSpeed();
+    Board board{kPerft2};
+    Search searcher(board);
+    auto time = TestSearchSpeed(board, searcher);
+
     return 0;
 }
-
-
-/*
-
-    constexpr int kDepth = 5;
-    constexpr size_t kRounds = 1;
-
-    std::chrono::milliseconds total_time{};
-
-        Board board{};
-        auto start = std::chrono::high_resolution_clock::now();
-        auto nodes = perft::Perft(board, kDepth);
-        auto end = std::chrono::high_resolution_clock::now();
-
-        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-        total_time += elapsed;
-
-    std::cout << nodes << "\n";
-    std::cout << total_time.count();
-
-    return 0;
-    */

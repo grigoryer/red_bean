@@ -1,5 +1,6 @@
 #pragma once 
 
+#include "search_globals.hpp"
 #include "search.hpp"
 
 

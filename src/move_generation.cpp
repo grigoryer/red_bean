@@ -1,6 +1,7 @@
 #include "move_generation.hpp"
 #include "attacks.hpp"
 #include "global.hpp"
+
 #include <cassert>
 
 namespace generation::legal
@@ -79,10 +80,12 @@ void CleanMoveList(Board& board, MoveList& move_list)
     for (size_t ind = 0; ind < move_list.move_count; ++ind)
     {
         const Move move = move_list.list.at(ind);
+        // Also add scoring to the moves in here.
         if (IsMoveLegal(board, status, move, blockers, ally_color, enemy_color))
         {
             move_list.list[legal_count++] = move;
         }
+
     }
     move_list.move_count = legal_count;
 }

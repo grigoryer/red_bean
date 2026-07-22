@@ -1,14 +1,15 @@
-Testing Search Speed through game tree
+Testing Search Speed through game tree.
 
 Rules:
 1. Must return to same state/hash
 2. Must not crash
-3. kPerft2 position - midgame
+3. kPerft2 position, a midgame position
 4. Move returned must be legal!
 5. Must be on -O1, no -flto -O3, -march-native is fine.
 6. Must also count nodes searched.
-7. Eval is white piece type count - black piece type count. 
+7. Eval is white piece type count - black piece type count, Selected move shold not change unless depth change.
 8. No checks on other system processes. So other firefox tabs and applications can be open.
+9. Iterative, assume using all previous upgrades in addition to new listed one. Unless specified otherwise.
 
 
 
@@ -22,6 +23,7 @@ Basic Alpha beta depth 6 unordered GenType::kAll
     Notes:      Basic Starting time.
     
 
+
 Basic Alpha beta depth 6 semi-ordered GenType::kNoisy then GenType::kQuiet
 
     Best Move: e2 a6 Normal
@@ -32,7 +34,8 @@ Basic Alpha beta depth 6 semi-ordered GenType::kNoisy then GenType::kQuiet
     Notes:      Way better since pruning more braches with higher scores earlier on. 350 million less nodes checked!
 
 
-NegaMax (combine min and max player functions into one) depth 6 semi-ordered GenType::kNoisy then GenType::kQuiet
+
+NegaMax (combine min and max player functions into one) depth 6
 
     Best Move: e2 a6 Normal
     Best Score: 10
@@ -41,3 +44,72 @@ NegaMax (combine min and max player functions into one) depth 6 semi-ordered Gen
 
     Notes:      Since more of a visual and code readability change the node cout has be the same, timing is around the same as well. 
                 In longer pahts this will also speed up since less jumping.
+
+
+
+NegaMax (combine min and max player functions into one) depth 6
+
+    Best Move: e2 a6 Normal
+    Best Score: 10
+    Nodes: 12111425
+    Time: 6004ms
+
+    Notes:      Since more of a visual and code readability change the node cout has be the same, timing is around the same as well. 
+                In longer pahts this will also speed up since less jumping.
+
+
+
+Transposition Table (Add table to store previous entries and prune based of that) depth 6
+         
+    Best Score: 10
+    Best Move: e2 a6 Normal
+    Nodes: 7228051
+    Time: 4188ms
+
+    Table Hits: 294958
+    Table Mises: 6933093
+
+
+    Notes:      40.3 percent decrease on nodes searched and 33% percent on speed, this is because we got some overhead from the probe adding and extra branching/intialization inside the NegaMax. Hit rate of 4.08%
+
+    
+
+Simple Itterative Deepening (for loop, try each depth from 1 to depth 6) depth 6 (1-6)
+         
+    Depth: 1
+    Best Move: e1 c1 Castle Queen Side
+    Best Score: 0
+
+    Depth: 2
+    Best Move: e2 a6 Normal
+    Best Score: 20
+
+    Depth: 3
+    Best Move: e1 c1 Castle Queen Side
+    Best Score: 0
+
+    Depth: 4
+    Best Move: e2 a6 Normal
+    Best Score: 20
+
+    Depth: 5
+    Best Move: e1 c1 Castle Queen Side
+    Best Score: 0
+
+    Depth: 6
+    Best Move: e2 a6 Normal
+    Best Score: 10
+
+    Nodes: 8169676
+    Time: 4765ms
+
+    Table Hits: 410573
+    Table Mises: 7759103
+
+
+    Notes:      5.02% hit rate in mid game position, issue could be capacity miss since only storing 1 << 20 frames or one million positions. 
+                Need to also check how spread out the hashing is with collision misses.
+                Another issue of osiliations, this is becuase it ends at 6 and if its a dynamic position then it stops. Need to add qsearch but that is not about speed. 
+                Lastly, our speed slowed down this is becuase we are not changing the aspiration window or not using move ordering.
+                
+

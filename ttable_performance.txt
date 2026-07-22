@@ -1,0 +1,127 @@
+kPerft2 iterative depepn on depth 6
+
+
+2^18 buckets with 4 way buckets
+Nodes: 8175050
+Time: 4928ms
+
+Table Hits: 403565
+Table Mises: 7771485
+Hit Rate: 4.93654
+Fill Factor:            60.8189
+Non Null Entries:       637732
+--- Bucket Occupancy Histogram ---
+  0 filled: 18609 buckets (7.09877%)
+  1 filled: 49563 buckets (18.9068%)
+  2 filled: 65113 buckets (24.8386%)
+  3 filled: 57493 buckets (21.9318%)
+  4 filled: 71366 buckets (27.224%)
+
+
+2^16 buckets with 16 way buckets
+Nodes: 8169676
+Time: 4796ms
+
+Table Hits: 410573
+Table Mises: 7759103
+Hit Rate: 5.02557
+Fill Factor:            65.3969
+Non Null Entries:       685736
+--- Bucket Occupancy Histogram ---
+  0 filled: 2 buckets (0.00305176%)
+  1 filled: 17 buckets (0.0259399%)
+  2 filled: 88 buckets (0.134277%)
+  3 filled: 330 buckets (0.50354%)
+  4 filled: 869 buckets (1.32599%)
+  5 filled: 1910 buckets (2.91443%)
+  6 filled: 3308 buckets (5.04761%)
+  7 filled: 4894 buckets (7.46765%)
+  8 filled: 6635 buckets (10.1242%)
+  9 filled: 7700 buckets (11.7493%)
+  10 filled: 8081 buckets (12.3306%)
+  11 filled: 7576 buckets (11.5601%)
+  12 filled: 6754 buckets (10.3058%)
+  13 filled: 5624 buckets (8.58154%)
+  14 filled: 4161 buckets (6.34918%)
+  15 filled: 2911 buckets (4.44183%)
+  16 filled: 4676 buckets (7.13501%)
+
+
+2^17 buckets with 8 way buckets
+
+Nodes: 8171381
+Time: 4924ms
+
+Table Hits: 408687
+Table Mises: 7762694
+Hit Rate: 5.00144
+Fill Factor:            63.914
+Non Null Entries:       670187
+--- Bucket Occupancy Histogram ---
+  0 filled: 674 buckets (0.514221%)
+  1 filled: 3527 buckets (2.69089%)
+  2 filled: 9376 buckets (7.15332%)
+  3 filled: 16283 buckets (12.4229%)
+  4 filled: 21636 buckets (16.507%)
+  5 filled: 22895 buckets (17.4675%)
+  6 filled: 20050 buckets (15.2969%)
+  7 filled: 15308 buckets (11.6791%)
+  8 filled: 21323 buckets (16.2682%)
+
+
+
+
+test on kperft2 depth 7 hit rate on size of ttable 4 way.
+
+1<<20
+
+    Nodes: 63657590
+    Time: 36493ms
+
+    Table Hits: 3061899
+    Table Mises: 60595691
+    Hit Rate: 4.80995
+    Fill Factor:            89.2795
+    Non Null Entries:       3744654
+    --- Bucket Occupancy Histogram ---
+    0 filled: 6779 buckets (0.646496%)
+    1 filled: 34283 buckets (3.26948%)
+    2 filled: 87264 buckets (8.32214%)
+    3 filled: 145157 buckets (13.8433%)
+    4 filled: 775093 buckets (73.9186%)
+
+
+1<<22
+
+    Nodes: 63499653
+    Time: 37774ms
+
+    Table Hits: 3133530
+    Table Mises: 60366123
+    Hit Rate: 4.93472
+    Fill Factor:            31.1742
+    Non Null Entries:       5230170
+    --- Bucket Occupancy Histogram ---
+    0 filled: 1190465 buckets (28.3829%)
+    1 filled: 1499927 buckets (35.761%)
+    2 filled: 944962 buckets (22.5296%)
+    3 filled: 395481 buckets (9.429%)
+    4 filled: 163469 buckets (3.8974%)
+
+
+
+1 << 24
+    Nodes: 63495751
+    Time: 40037ms
+
+    Table Hits: 3135644
+    Table Mises: 60360107
+    Hit Rate: 4.93835
+    Fill Factor:            7.86628
+    Non Null Entries:       5278972
+    --- Bucket Occupancy Histogram ---
+    0 filled: 12244388 buckets (72.9822%)
+    1 filled: 3859899 buckets (23.0068%)
+    2 filled: 604955 buckets (3.60581%)
+    3 filled: 62733 buckets (0.373918%)
+    4 filled: 5241 buckets (0.0312388%)

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "board.hpp"
+#include "move.hpp"
 #include "move_generation.hpp"
 #include "move_making.hpp"
 #include "debug.hpp"
@@ -160,8 +161,8 @@ void ProfilePerft()
             auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
             total_time += elapsed;
             std::cout << "Run " << (i + 1) << ": " << elapsed.count() << " ms"
-                    << (nodes == test.expected ? " " : "  MISMATCH: " + std::to_string(nodes))
-                    << '\n';
+                    << (nodes == test.expected ? " " : "  MISMATCH: ")
+                    << std::to_string(nodes) << '\n';
         }
         std::cout << "Avg: " << (total_time.count() / static_cast<int>(kRounds)) << "\n\n";
     }
