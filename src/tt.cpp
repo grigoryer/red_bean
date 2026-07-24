@@ -67,6 +67,19 @@ TEntry* TTable::GetEntry(Hash hash)
 };
     
 
+void TTable::ClearTT()
+{
+    for (auto& bucket : array_)
+    {
+        int filled{};
+        for (auto& entry : bucket.bucket_)
+        {
+            entry = TEntry();
+        }
+    }
+}
+
+
 
 void TTable::ProfileTableSpread()
 {

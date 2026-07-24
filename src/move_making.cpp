@@ -117,7 +117,7 @@ inline void SetCastlPerm(Status& status, CastlePerm perm)
 
 
 // Needs to 
-void MakeMove(Board& board, Move move) //NOLINT
+void MakeMove(Board& board, ExtMove move) //NOLINT
 {   
     auto& status = board.CreateNewStatus();
     Square from_sqr{move.GetFrom()};
@@ -196,7 +196,7 @@ void MakeMove(Board& board, Move move) //NOLINT
 
 
 
-void UndoMove(Board& board, Move move)
+void UndoMove(Board& board, ExtMove move)
 {
     // Status on top of the stack is the one make_move created for this move.
     auto& status = board.GetCurStatus();

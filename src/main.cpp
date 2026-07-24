@@ -6,9 +6,11 @@
 #include "perft.hpp"
 #include "move_making.hpp"
 #include "move_generation.hpp"
+#include <atomic>
 #include <chrono>
 #include <cstddef>
 #include "search.hpp"
+#include "uci.hpp"
 #include <iostream>
 #include <ratio>
 #include <string>
@@ -31,6 +33,7 @@ auto TestSearchSpeed(Board board, Search& searcher)
     std::cout << "\nTable Mises: " << searcher.nodes_searched - searcher.ttable_->node_hits;
     std::cout << "\nHit Rate: " << 100 * static_cast<double>(searcher.ttable_->node_hits) /  static_cast<double>(searcher.nodes_searched);
 
+    PrintStatus(board.GetCurStatus());
     searcher.ttable_->ProfileTableSpread();
 
     return elapsed;
@@ -39,10 +42,22 @@ auto TestSearchSpeed(Board board, Search& searcher)
 
 int main() 
 {    
-
-    Board board{kPerft2};
-    Search searcher(board);
-    auto time = TestSearchSpeed(board, searcher);
+    UCI engine{};
+    //Board board{kPerft3};
+    //std::atomic<bool> flag{false};
+    //Search searcher(board, flag);
+    engine.Loop();
+   
+    // while(std::cin.get())
+    // {
+    //     PrintPieceBoard(board);
+    //     PrintStatus(board.GetCurStatus());
+    //     ExtMove move = searcher.FindBestMove(7);
+    //     moving::MakeMove(board, move);
+    //     PrintPieceBoard(board);
+    //     PrintMove(move);
+    //     std::cout << Evaluation::EvaluatePos(board);
+    // }
 
     return 0;
 }

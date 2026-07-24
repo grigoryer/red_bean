@@ -50,7 +50,7 @@ inline void PrintPieceBoard(const Board& board)
 }
 
 
-inline void PrintMove(Move move)
+inline void PrintMove(ExtMove move)
 {
     std::cout << SquareToString(move.GetFrom()) << " "
                 << SquareToString(move.GetTo()) << " ";
@@ -68,7 +68,7 @@ inline void PrintMove(Move move)
     std::cout << type;
     if (move.GetType() == MoveType::kNormal)
     {
-        std::cout << "\n";
+        std::cout << " Move Score: " << move.score_ << "\n";
         return;
     }
 
@@ -98,7 +98,7 @@ inline void PrintMove(Move move)
     std::cout << castle;
 
 
-    std::cout << "\n";
+    std::cout << " Mvoe Score: " << move.score_ << "\n";
 }
 
 
@@ -114,7 +114,7 @@ inline void PrintMoveList(const MoveList& move_list)
 
 inline void PrintStatus(const Status& status)
 {
-    std::cout << "=== Status ===\n";
+    std::cout << "\n=== Status ===\n";
 
     std::cout << "Side to move : " << (status.cur_color_ == Color::kWhite ? "White" : "Black") << "\n";
 

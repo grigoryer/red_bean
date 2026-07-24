@@ -7,6 +7,6 @@
 
 namespace moving
 {
-    void MakeMove(Board& board, Move move);
-    void UndoMove(Board& board, Move move);
+    void MakeMove(Board& board, ExtMove move);
+    void UndoMove(Board& board, ExtMove move);
 }

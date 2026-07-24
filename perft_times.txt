@@ -22,3 +22,4 @@ All correct nodes: 193690690
     ordering changes in MoveGenerator   37889           : Rerun on pc with lets programs.
     half moving with mask               31406
     early returns                       31336 
+    Move -> ExtdMoves                   36255

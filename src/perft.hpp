@@ -53,7 +53,7 @@ inline uint64_t PerftDivide(Board& board, int depth)
     uint64_t total = 0;
     for (size_t i = 0; i < moves.move_count; ++i)
     {
-        const Move move = moves.list.at(i);
+        const ExtMove move = moves.list.at(i);
 
         moving::MakeMove(board, move);
         uint64_t nodes = (depth <= 1) ? 1 : Perft(board, depth - 1);
@@ -99,7 +99,7 @@ inline uint64_t PerftDebug(Board& board, int depth)
     uint64_t nodes = 0;
     for (size_t i = 0; i < moves.move_count; ++i)
     {
-        const Move move = moves.list.at(i);
+        const ExtMove move = moves.list.at(i);
 
         std::cout << "\ndepth " << depth << " | making move " << (i + 1) << "/" << moves.move_count << ": ";
         PrintMove(move);

@@ -5,7 +5,11 @@
 #include "global.hpp"
 #include "move.hpp"
 #include "board.hpp"
+#include "search_globals.hpp"
+#include <cstddef>
 
+// score moves in generation since we do not have a specific is capture. This way we may score moves that are not legal, we skip unnecart is capture checks later on in clean move list.
+// Additonally we would only generate score on noisy moves.
 
 namespace generation
 {
@@ -39,7 +43,7 @@ inline void GeneratePawnQuiet(Board& board, MoveList& move_list, Bitboard target
         Square to_sqr = PopLsb(single_move);
         auto from_sqr = static_cast<Square>(static_cast<int>(to_sqr) + from_shift);
 
-        move_list.addMove(Move(from_sqr, to_sqr, MoveType::kNormal));
+        move_list.addMove(ExtMove(Move(from_sqr, to_sqr, MoveType::kNormal)));
     }
 
     while (double_move != 0)
@@ -47,7 +51,7 @@ inline void GeneratePawnQuiet(Board& board, MoveList& move_list, Bitboard target
         Square to_sqr = PopLsb(double_move);
         auto from_sqr = static_cast<Square>(static_cast<int>(to_sqr) + from_shift + from_shift);
 
-        move_list.addMove(Move(from_sqr, to_sqr, MoveType::kNormal));
+        move_list.addMove(ExtMove(Move(from_sqr, to_sqr, MoveType::kNormal)));
     }
 }
 
@@ -74,17 +78,18 @@ inline void GeneratePawnNoisy(Board& board, MoveList& move_list, Bitboard target
         while (attacks != 0)
         {
             Square to_sqr = PopLsb(attacks);
+            MoveScore move_score = kMoveOrderingTable[static_cast<size_t>(Piece::kPawn)][static_cast<size_t>(board.GetPieceOnSquare(to_sqr))];
             if ((ToBitboard(cur_sqr) & promo_rank) != 0)
             {
                 // capture-promotions: one move per promo piece (Q,R,B,N)
-                move_list.addMove(Move(cur_sqr, to_sqr, MoveType::kPromotion, Piece::kQueen));
-                move_list.addMove(Move(cur_sqr, to_sqr, MoveType::kPromotion, Piece::kRook));
-                move_list.addMove(Move(cur_sqr, to_sqr, MoveType::kPromotion, Piece::kBishop));
-                move_list.addMove(Move(cur_sqr, to_sqr, MoveType::kPromotion, Piece::kKnight));
+                move_list.addMove(ExtMove(Move(cur_sqr, to_sqr, MoveType::kPromotion, Piece::kQueen), move_score));
+                move_list.addMove(ExtMove(Move(cur_sqr, to_sqr, MoveType::kPromotion, Piece::kRook), move_score));
+                move_list.addMove(ExtMove(Move(cur_sqr, to_sqr, MoveType::kPromotion, Piece::kBishop), move_score));
+                move_list.addMove(ExtMove(Move(cur_sqr, to_sqr, MoveType::kPromotion, Piece::kKnight), move_score));
             }
-            else
-            {
-                move_list.addMove(Move(cur_sqr, to_sqr, MoveType::kNormal));
+            else // pure captures
+            { 
+                move_list.addMove(ExtMove(Move(cur_sqr, to_sqr, MoveType::kNormal), move_score));
             }
         }
     }
@@ -94,10 +99,10 @@ inline void GeneratePawnNoisy(Board& board, MoveList& move_list, Bitboard target
         Square to_sqr = PopLsb(quiet_promo_pawns);
         auto from_sqr = static_cast<Square>(static_cast<int>(to_sqr) + from_shift);
 
-        move_list.addMove(Move(from_sqr, to_sqr, MoveType::kPromotion, Piece::kQueen));
-        move_list.addMove(Move(from_sqr, to_sqr, MoveType::kPromotion, Piece::kRook));
-        move_list.addMove(Move(from_sqr, to_sqr, MoveType::kPromotion, Piece::kBishop));
-        move_list.addMove(Move(from_sqr, to_sqr, MoveType::kPromotion, Piece::kKnight));
+        move_list.addMove(ExtMove(Move(from_sqr, to_sqr, MoveType::kPromotion, Piece::kQueen), kPieceWorth[static_cast<size_t>(Piece::kQueen)]));
+        move_list.addMove(ExtMove(Move(from_sqr, to_sqr, MoveType::kPromotion, Piece::kRook), kPieceWorth[static_cast<size_t>(Piece::kRook)]));
+        move_list.addMove(ExtMove(Move(from_sqr, to_sqr, MoveType::kPromotion, Piece::kBishop), kPieceWorth[static_cast<size_t>(Piece::kBishop)]));
+        move_list.addMove(ExtMove(Move(from_sqr, to_sqr, MoveType::kPromotion, Piece::kKnight), kPieceWorth[static_cast<size_t>(Piece::kKnight)]));
     }
 
     // should work without any target
@@ -108,7 +113,8 @@ inline void GeneratePawnNoisy(Board& board, MoveList& move_list, Bitboard target
 
         while (enpassant_squares != 0)
         {
-            move_list.addMove(Move(PopLsb(enpassant_squares), board.GetCurStatus().enpassant_, MoveType::kEnPassant));
+            move_list.addMove(ExtMove(Move(PopLsb(enpassant_squares), board.GetCurStatus().enpassant_, MoveType::kEnPassant), 
+                              kMoveOrderingTable[static_cast<size_t>(Piece::kPawn)][static_cast<size_t>(Piece::kPawn)]));
         }
     }
 }
@@ -136,27 +142,22 @@ void GenerateForPiece(Board& board, MoveList& move_list, Bitboard occ, Color all
         Square from_sqr = PopLsb(piece_spots);
         Bitboard piece_moves = attacks::getPieceAttack<piece>(occ, from_sqr, ally_color) & target;
 
-        if constexpr (gen_type == GenType::kNoisy)
+        if constexpr (gen_type == GenType::kNoisy || gen_type == GenType::kAll)
         {
             Bitboard noisy_moves = piece_moves & board.GetColorBB(enemy_color); // captures
             while (noisy_moves != 0)
             {
-                move_list.addMove(Move(from_sqr, PopLsb(noisy_moves), MoveType::kNormal));
+                Square to_sqr = PopLsb(noisy_moves);
+                move_list.addMove(ExtMove(Move(from_sqr, to_sqr, MoveType::kNormal), kMoveOrderingTable[static_cast<size_t>(piece)][static_cast<size_t>(board.GetPieceOnSquare(to_sqr))]));
             }
         }
-        else if constexpr (gen_type == GenType::kAll) // All moves, no need to check enemy.
+        
+        if constexpr (gen_type == GenType::kQuiet || gen_type == GenType::kAll)
         {
-            while (piece_moves != 0)
-            {
-                move_list.addMove(Move(from_sqr, PopLsb(piece_moves), MoveType::kNormal));
-            }
-        }
-        else if constexpr (gen_type == GenType::kQuiet)
-        {
-            Bitboard quiet_moves = piece_moves & ~board.GetColorBB(enemy_color); // non-captures, called rarely mostly just for correctness
+            Bitboard quiet_moves = piece_moves & ~board.GetColorBB(enemy_color); // non-captures
             while (quiet_moves != 0)
             {
-                move_list.addMove(Move(from_sqr, PopLsb(quiet_moves), MoveType::kNormal));
+                move_list.addMove(ExtMove(Move(from_sqr, PopLsb(quiet_moves), MoveType::kNormal)));
             }
         }
     }
@@ -203,12 +204,12 @@ inline void GenerateCastling(Board& board, MoveList& move_list)
 
     if (queen_rights && (between::GetRayBetweenSquares(from_sqr, queen_side) & board.GetColorBB(Color::kAll)) == 0)
     {
-        move_list.addMove(Move(from_sqr, queen_to, MoveType::kCastle));
+        move_list.addMove(ExtMove(Move(from_sqr, queen_to, MoveType::kCastle), kCastleBoost));
     }
 
     if (king_rights && (between::GetRayBetweenSquares(from_sqr, king_side) & board.GetColorBB(Color::kAll)) == 0)
     {
-        move_list.addMove(Move(from_sqr, king_to, MoveType::kCastle));
+        move_list.addMove(ExtMove(Move(from_sqr, king_to, MoveType::kCastle), kCastleBoost));
     }
 }
 
@@ -226,9 +227,9 @@ void GenerateKingMoves(Board& board, MoveList& move_list, size_t checker_count)
         Bitboard noisy_moves = king_moves & board.GetColorBB(enemy_color); //captures
         while (noisy_moves != 0)
         {
-            move_list.addMove(Move(from_sqr, PopLsb(noisy_moves), MoveType::kNormal));
+            Square to_sqr = PopLsb(noisy_moves);
+            move_list.addMove(ExtMove(Move(from_sqr, to_sqr, MoveType::kNormal), kMoveOrderingTable[static_cast<size_t>(Piece::kKing)][static_cast<size_t>(board.GetPieceOnSquare(to_sqr))]));
         }
-
         if (checker_count == 0)
         {
             GenerateCastling(board, move_list);
@@ -240,7 +241,7 @@ void GenerateKingMoves(Board& board, MoveList& move_list, size_t checker_count)
         Bitboard quiet_moves = king_moves & ~board.GetColorBB(enemy_color); // non capture quiet move.
         while (quiet_moves != 0)
         {
-            move_list.addMove(Move(from_sqr, PopLsb(quiet_moves), MoveType::kNormal));
+            move_list.addMove(ExtMove(Move(from_sqr, PopLsb(quiet_moves), MoveType::kNormal)));
         }
     }
 }
@@ -272,7 +273,6 @@ void GenerateMoves(Board& board, MoveList& move_list)
         CleanMoveList(board, move_list); 
         return; 
     } 
-
 
     if (slider_cherkers + leaper_cherkers == 1) // If checker we need to adjust target to be between the checker and king including checker
     {

@@ -63,19 +63,20 @@ private:
 class ExtMove : public Move
 {
 public:
-    MoveScore score{};
+    MoveScore score_{};
 
     ExtMove() = default;
     explicit ExtMove(Move move) : Move(move) {  }
+    explicit ExtMove(Move move, MoveScore score) : Move(move), score_(score) {  }
 };
 
 class MoveList
 {
 public:
-    std::array<Move, 256> list;
+    std::array<ExtMove, 256> list;
     size_t move_count{};
 
-    void addMove(Move move)
+    void addMove(ExtMove move)
     {
         list[move_count++] = move; 
     }

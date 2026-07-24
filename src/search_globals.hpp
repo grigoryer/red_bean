@@ -4,12 +4,20 @@
 #include <cstddef>
 #include <cstdint>
 
-using Score = int32_t;
+using Score = int16_t;
 using MoveScore = uint16_t;
 
+constexpr Score kPosInf = std::numeric_limits<Score>::max() - 3000;
+constexpr Score kNegInf = -kPosInf;
+
+constexpr Score kMateScore = kNegInf + 1000;
+constexpr Score kMateThreshold = kMateScore + 400;
+
+constexpr size_t kMaxSearchDepth{100};
 constexpr size_t kTTableSize = 1 << 20;
 constexpr size_t kTBucketSize = 1 << 2;
 
+constexpr uint8_t kQuesDepth = 5;
 
 enum class NodeType : uint8_t
 {
@@ -20,7 +28,7 @@ enum class NodeType : uint8_t
 
 constexpr std::array<MoveScore, kPieceCount> kPieceWorth { 900, 500, 300, 300, 100, 0 };
 
-
+constexpr MoveScore kCastleBoost = 1700; // arbirtrary, but i think safety it should be pushed above major piece captrung a pawn
 constexpr MoveScore kRefutationMoveBoost = 10000;
 
 // [attacker][victim]

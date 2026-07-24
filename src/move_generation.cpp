@@ -1,4 +1,5 @@
 #include "move_generation.hpp"
+#include "search_globals.hpp"
 #include "attacks.hpp"
 #include "global.hpp"
 
@@ -8,7 +9,7 @@ namespace generation::legal
 {
 
 
-inline bool IsMoveLegal(Board& board, const Status& status, const Move move, const Bitboard blockers, const Color ally_color, const Color enemy_color)
+inline bool IsMoveLegal(Board& board, const Status& status, const ExtMove move, const Bitboard blockers, const Color ally_color, const Color enemy_color)
 {
     if ((ToBitboard(move.GetFrom()) & blockers) != 0) 
     { 
@@ -79,11 +80,12 @@ void CleanMoveList(Board& board, MoveList& move_list)
 
     for (size_t ind = 0; ind < move_list.move_count; ++ind)
     {
-        const Move move = move_list.list.at(ind);
+        const ExtMove move = move_list.list.at(ind);
         // Also add scoring to the moves in here.
         if (IsMoveLegal(board, status, move, blockers, ally_color, enemy_color))
         {
-            move_list.list[legal_count++] = move;
+            move_list.list[legal_count] = move;
+            legal_count++;
         }
 
     }

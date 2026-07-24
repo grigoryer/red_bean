@@ -12,7 +12,6 @@ Rules:
 9. Iterative, assume using all previous upgrades in addition to new listed one. Unless specified otherwise.
 
 
-
 Basic Alpha beta depth 6 unordered GenType::kAll
 
     Best Move: e2 a6 Normal
@@ -113,3 +112,40 @@ Simple Itterative Deepening (for loop, try each depth from 1 to depth 6) depth 6
                 Lastly, our speed slowed down this is becuase we are not changing the aspiration window or not using move ordering.
                 
 
+Transposition Table fixes
+
+    Best Score: 10
+    Best Move: e2 a6 Normal
+
+    Nodes: 8343385
+    Time: 4388ms
+
+    Table Hits: 411748
+    Table Mises: 7931637
+    Hit Rate: 4.93502
+
+
+MoveOrdering MVA_LVV
+
+    Best Score: -10
+    Best Move: e2 a6 Normal Move Score: 3600
+    Nodes: 2372697
+    Time: 1928ms
+    Table Hits: 139089
+    Table Mises: 2233608
+
+    Notes:      73% decrease in nodes searched without hash move boost.
+
+
+
+MoveOrdering add hash move check prior to generation with beta cutoff and alpha update.
+
+    Best Score: -10
+    Best Move: e2 a6 Normal Move Score: 3600
+    Nodes: 2260647
+    Time: 1421ms
+    Table Hits: 137339
+    Table Mises: 2123308
+    Hit Rate: 6.07521
+
+    Notes: only 5% decrease in nodes searched. Probably due to this being on a single position with a mostly empty TT so we are adding alot of entries due to cold misses.
