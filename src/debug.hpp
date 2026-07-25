@@ -24,6 +24,9 @@ inline void PrintBitboard(const Bitboard& bb)
     }
 
     std::cout << "\n   A B C D E F G H\n";
+
+    std::cout << "\n\n\n   " << std::hex << bb; 
+
 }
 
 

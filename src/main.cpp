@@ -15,7 +15,6 @@
 #include <ratio>
 #include <string>
 
-
 int main() 
 {    
     UCI engine{};

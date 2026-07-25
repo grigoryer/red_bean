@@ -119,25 +119,23 @@ public:
         --status_count_;
     }
 
-    bool IsDraw()
+    [[nodiscard]] bool IsDraw() const
     {
-        if (status_history_[status_count_].half_move_ > 100)
-        {
-            return true;
-        }
+        const Status& cur = status_history_[status_count_];
+        if (cur.half_move_ >= 100) { return true; }
 
-        int lower_bound = status_count_ - status_history_[status_count_].half_move_;
+        const int cur_index = static_cast<int>(status_count_);
+        const int lower_bound = std::max(0, cur_index - static_cast<int>(cur.half_move_));
+
         int same_hash_count{};
-        Hash cur_hash = status_history_[status_count_].hash_;
-
-        for (int i{status_count_}; i >= lower_bound; i -= 2)
+        for (int i{cur_index - 2}; i >= lower_bound; i -= 2)
         {
-            if(status_history_[i].hash_ == cur_hash)
+            if (status_history_[i].hash_ == cur.hash_)
             {
-                if(++same_hash_count > 2) { return true; }
+                // In-tree repetition: one match is enough. Below the search root it takes two.
+                if (++same_hash_count >= 2) { return true; }
             }
         }
-
         return false;
     }
 

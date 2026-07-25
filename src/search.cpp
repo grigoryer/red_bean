@@ -29,9 +29,20 @@ void Search::UpdatePv(uint8_t ply, ExtMove move)
     pv_length_[ply] = copy_len + 1;
 }
 
+void Search::AgeHistory()
+{
+    for (auto& by_color : history_heuristic_)
+    {
+        for (auto& by_from : by_color)
+        {
+            for (auto& value : by_from) { value /= 2; }
+        }
+    }
+}
 
 void Search::BoostMoves(MoveList& current_moves, uint8_t ply)
 {
+    Color ally_color = board_.GetCurStatus().cur_color_;
     for (size_t i{}; i < current_moves.move_count; ++i)
     {
         auto& move = current_moves.list[i];
@@ -43,6 +54,14 @@ void Search::BoostMoves(MoveList& current_moves, uint8_t ply)
         else if (move == killers_[ply][1])
         {
             move.score_ += kKiller2Boost; 
+        }
+        else if (board_.GetPieceOnSquare(move.GetTo()) == Piece::kNone)
+        {
+            const MoveScore raw = history_heuristic_[static_cast<size_t>(ally_color)]
+                                            [static_cast<size_t>(move.GetFrom())]
+                                            [static_cast<size_t>(move.GetTo())];
+
+            move.score_ += static_cast<MoveScore>((raw * kHistoryCeiling) / kHistoryMax);
         }
     }
 }
@@ -100,7 +119,7 @@ Score Search::QuesSearch(Score alpha, Score beta, uint8_t depth)
         best_score = std::max(score, best_score);
     }
     return best_score;
-}   
+}
 
 // Min and max player are combined into one, where alpha is equal to the current players score and beta is equal to the opposing player score.
 // Alpha will be better if it is greater than the opposing player, so for black we need to flip the evaluation * -1.
@@ -109,6 +128,9 @@ Score Search::QuesSearch(Score alpha, Score beta, uint8_t depth)
 Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply) // NOLINT
 {   
     pv_length_[ply] = 0;
+
+    // check for 50 move rule and 3 fold repitition
+    if (ply > 0 && board_.IsDraw()) { return kDrawScore; }
     
     if (depth == 0) { return QuesSearch(alpha, beta, kQuesDepth); }
 
@@ -116,7 +138,6 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply) // NO
     ExtMove best_move{};
     Score orig_alpha = alpha;
     between::SetCheckersAndBlockers(board_, board_.GetCurStatus()); // set checker blockers for each position.
-
 
     TEntry* probe_entry = ttable_->GetEntry(board_.GetCurStatus().hash_);
     if (probe_entry != nullptr)
@@ -173,9 +194,6 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply) // NO
     // If 0 moves possible in all if we are in check it is mate and if not then it is a stalemate
     if (possible_moves.move_count == 0) { return (board_.GetCurStatus().checking_squares_ != 0) ? static_cast<Score>(kMateScore + ply) : 0; }
 
-    // check for draw and return 0.
-    if (board_.IsDraw()) { return kDrawScore; }
-
     // After getting the score we can add this position to Transposition table.
     for (size_t i{}; i < possible_moves.move_count; ++i)
     {
@@ -195,13 +213,19 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply) // NO
         // current score exceeded the acceptable threshhold of the opposing player, so no need to search rest of branch.
         if (score >= beta && !stop_flag_)
         {
-            if (board_.GetPieceOnSquare(move.GetTo()) == Piece::kNone && move.GetType() != MoveType::kPromotion)
+            // On a non capture move we update the history heuristic and killer move if needed.
+            if (board_.GetPieceOnSquare(move.GetTo()) == Piece::kNone)
             {
                 if (!(killers_[ply][0] == move))
                 {
                     killers_[ply][1] = killers_[ply][0];
                     killers_[ply][0] = move;
                 }
+
+                auto& entry = history_heuristic_[static_cast<size_t>(board_.GetCurStatus().cur_color_)][static_cast<size_t>(move.GetFrom())][static_cast<size_t>(move.GetTo())];
+
+                entry = static_cast<MoveScore>(entry + (depth * depth));
+                if (entry >= kHistoryMax) { AgeHistory(); }
             }
             
             ttable_->AddEntry({board_.GetCurStatus().hash_, score, move, depth, NodeType::LOWER});

@@ -1,4 +1,6 @@
 #include "eval.hpp"
+#include "attacks.hpp"
+#include "eval_constants.hpp"
 #include "global.hpp"
 #include <cstddef>
 
@@ -6,58 +8,111 @@ namespace
 {
 bool is_endgame = 0;
 
+
 template <Piece piece>
-inline Score EvaluatePosition(const Board& board)
+inline Score EvaluatePiece(const Board& board, std::array<Score, kSquareCount> table)
 {
-    bool is_endgame = BitCount(board.GetColorBB(Color::kAll)) <= 16;
-
-    const auto& table = [&is_endgame](const Board& b) -> const std::array<Score, kSquareCount>&
-    {
-        if constexpr (piece == Piece::kQueen)  { return kQueenPosEval; }
-        else if constexpr (piece == Piece::kRook)   { return kRookPosEval; }
-        else if constexpr (piece == Piece::kBishop) { return kBishopPosEval; }
-        else if constexpr (piece == Piece::kKnight) { return kKnightPosEval; }
-        else if constexpr (piece == Piece::kPawn)
-        {
-            return is_endgame ? kPawnLatePosEval : kPawnPosEval;
-        }
-        else
-        {
-            return is_endgame ? kKingLatePosEval : kKingPosEval;
-        }
-    }(board);
-
-    Score pos_score{};
+    const Bitboard occ = board.GetColorBB(Color::kAll);
+    Score score{};
 
     Bitboard white_pieces = board.GetColoredPieceBB(Color::kWhite, piece);
     while (white_pieces)
     {
-        pos_score += table[static_cast<size_t>(PopLsb(white_pieces))];
+        Square sqr = PopLsb(white_pieces);
+        score += kPieceValues[static_cast<size_t>(piece)];
+        score += table[static_cast<size_t>(sqr)];
+        score += kVisionBonuses[static_cast<size_t>(piece)] * BitCount(attacks::getPieceAttack<piece>(occ, sqr, Color::kWhite));
     }
 
     Bitboard black_pieces = board.GetColoredPieceBB(Color::kBlack, piece);
     while (black_pieces)
     {
-        pos_score -= table[static_cast<size_t>(PopLsb(black_pieces)) ^ 56];
+        Square sqr = PopLsb(black_pieces);
+        score -= kPieceValues[static_cast<size_t>(piece)];
+        score -= table[static_cast<size_t>(sqr) ^ 56];
+        score -= kVisionBonuses[static_cast<size_t>(piece)] * BitCount(attacks::getPieceAttack<piece>(occ, sqr, Color::kBlack));
     }
 
-    return pos_score;
+    return score;
 }
 
-
-inline Score EvaluatePieces(Board& board)
+inline Score EvaluatePawns(const Board& board, std::array<Score, kSquareCount> pos_table)
 {
     Score score = 0;
+    const Bitboard white_pawns = board.GetColoredPieceBB(Color::kWhite, Piece::kPawn);
+    Bitboard modified_white = white_pawns;
 
-    score += (100 * static_cast<Score>(BitCount(board.GetColoredPieceBB(Color::kWhite, Piece::kPawn)) - BitCount(board.GetColoredPieceBB(Color::kBlack, Piece::kPawn))));
+    const Bitboard black_pawns = board.GetColoredPieceBB(Color::kBlack, Piece::kPawn);
+    Bitboard modified_black = black_pawns;
 
-    score += (300 * static_cast<Score>(BitCount(board.GetColoredPieceBB(Color::kWhite, Piece::kKnight)) - BitCount(board.GetColoredPieceBB(Color::kBlack, Piece::kKnight))));
-    
-    score += (300 * static_cast<Score>(BitCount(board.GetColoredPieceBB(Color::kWhite, Piece::kBishop)) - BitCount(board.GetColoredPieceBB(Color::kBlack, Piece::kBishop))));
-    
-    score += (500 * static_cast<Score>(BitCount(board.GetColoredPieceBB(Color::kWhite, Piece::kRook)) - BitCount(board.GetColoredPieceBB(Color::kBlack, Piece::kRook))));
+    // Need to address pawn structure, aka next to each other. Past pawns aka pawns with no one in front or next to. And king safety.
+    while (modified_white)
+    {
+        Square sqr = PopLsb(modified_white);
+        Column cur_col = GetSquareCol(sqr);
 
-    score += (900 * static_cast<Score>(BitCount(board.GetColoredPieceBB(Color::kWhite, Piece::kQueen)) - BitCount(board.GetColoredPieceBB(Color::kBlack, Piece::kQueen))));
+        score += kPieceValues[static_cast<size_t>(Piece::kPawn)]; // piece value 
+
+        score += pos_table[static_cast<size_t>(sqr)]; // position of pawn
+
+        // Get the nearby columns for the current pawn
+        score += kPawnNeighborBonus * BitCount(kNearbyColumns[static_cast<size_t>(cur_col)] & white_pawns);
+        
+        // Add score for past pawns.
+        score += (BitCount(kNearbyColumns[static_cast<size_t>(cur_col)] & ToBitboard(cur_col) & black_pawns) == 0 ? kPassedPawnBonus : 0);
+    }
+
+    while (modified_black)
+    {
+        Square sqr = PopLsb(modified_black);
+        Column cur_col = GetSquareCol(sqr);
+
+        score -= kPieceValues[static_cast<size_t>(Piece::kPawn)]; //piece val
+
+        score -= pos_table[static_cast<size_t>(sqr) ^ 56]; // position of pawn
+
+        // Get the nearby columns for the current pawn
+        score -= kPawnNeighborBonus * BitCount(kNearbyColumns[static_cast<size_t>(cur_col)] & black_pawns);
+
+        // Add score for past pawns.
+        score -= (BitCount(kNearbyColumns[static_cast<size_t>(cur_col)] & ToBitboard(cur_col) & white_pawns) == 0 ? kPassedPawnBonus : 0);
+    }
+
+    return score;
+}
+
+inline Score EvaluateKings(const Board& board, std::array<Score, kSquareCount> pos_table, bool is_endgame)
+{
+    Score score = 0;
+    const Bitboard white_pawns = board.GetColoredPieceBB(Color::kWhite, Piece::kPawn);
+    const Bitboard black_pawns = board.GetColoredPieceBB(Color::kBlack, Piece::kPawn);
+
+    Square white_ksqr = GetLsb(board.GetColoredPieceBB(Color::kWhite, Piece::kKing));
+    score += pos_table[static_cast<size_t>(white_ksqr)];
+
+    if (!is_endgame)
+    {
+        Column cur_col = GetSquareCol(white_ksqr);
+        Row infront_row = static_cast<Row>(static_cast<int>(GetSquareRow(white_ksqr)) + 1);
+
+        Bitboard pawn_wall = (((kNearbyColumns[static_cast<size_t>(cur_col)] | ToBitboard(cur_col))) & ToBitboard(infront_row)) & white_pawns;
+
+        if (BitCount(pawn_wall) == 3) { score += kPawnShieldBonus; };
+    }
+
+
+    Square black_ksqr = GetLsb(board.GetColoredPieceBB(Color::kBlack, Piece::kKing));
+    score -= pos_table[static_cast<size_t>(black_ksqr)];
+
+    if (!is_endgame)
+    {
+        Column cur_col = GetSquareCol(black_ksqr);
+        Row infront_row = static_cast<Row>(static_cast<int>(GetSquareRow(black_ksqr)) - 1);
+
+        Bitboard pawn_wall = (((kNearbyColumns[static_cast<size_t>(cur_col)] | ToBitboard(cur_col))) & ToBitboard(infront_row)) & black_pawns;
+
+        if (BitCount(pawn_wall) == 3) { score -= kPawnShieldBonus; };
+    }
 
     return score;
 }
@@ -69,16 +124,18 @@ inline Score EvaluatePieces(Board& board)
 namespace evaluation
 {
 
-Score Evaluate(Board& board)
+Score Evaluate(const Board& board)
 {
-    Score score = EvaluatePieces(board);
+    Score score = 0;
 
-    score += EvaluatePosition<Piece::kQueen>(board);
-    score += EvaluatePosition<Piece::kRook>(board);
-    score += EvaluatePosition<Piece::kBishop>(board);
-    score += EvaluatePosition<Piece::kKnight>(board);
-    score += EvaluatePosition<Piece::kPawn>(board);
-    score += EvaluatePosition<Piece::kKing>(board);
+    bool is_endgame = BitCount(board.GetColorBB(Color::kAll)) <= 16;
+    
+    score += EvaluatePiece<Piece::kQueen>(board, kQueenPosEval);
+    score += EvaluatePiece<Piece::kRook>(board, kRookPosEval);
+    score += EvaluatePiece<Piece::kBishop>(board, kBishopPosEval);
+    score += EvaluatePiece<Piece::kKnight>(board, kKnightPosEval);
+    score += EvaluatePawns(board, is_endgame ? kPawnLatePosEval : kPawnPosEval);
+    score += EvaluateKings(board, is_endgame ? kKingLatePosEval : kKingPosEval, is_endgame);
     
     return score;
 }

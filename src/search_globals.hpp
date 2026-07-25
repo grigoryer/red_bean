@@ -15,11 +15,18 @@ constexpr Score kMateThreshold = kMateScore + 400;
 constexpr Score kDrawScore = -700;
 
 constexpr int kMaxPly = 64;
+
 constexpr size_t kMaxSearchDepth{kMaxPly};
-constexpr size_t kTTableSize = 1 << 20;
+constexpr size_t kTTableSize = 1 << 21;
 constexpr size_t kTBucketSize = 1 << 2;
 
 constexpr uint8_t kQuesDepth = 5;
+constexpr MoveScore kHistoryCeiling = 1500;
+constexpr MoveScore kHistoryMax = 1 << 14;
+
+static_assert(kHistoryMax + (kMaxSearchDepth * kMaxSearchDepth)
+              <= std::numeric_limits<MoveScore>::max(),
+              "history entry can overflow between aging passes");
 
 enum class NodeType : uint8_t
 {
@@ -33,6 +40,7 @@ constexpr std::array<MoveScore, kPieceCount> kPieceWorth { 900, 500, 300, 300, 1
 
 constexpr MoveScore kCastleBoost = 900; // after all types of captures.
 constexpr MoveScore kRefutationMoveBoost = 10000;
+
 constexpr MoveScore kKiller1Boost = 2000;
 constexpr MoveScore kKiller2Boost = 1900;
 
@@ -46,3 +54,5 @@ constexpr std::array<std::array<MoveScore, kPieceCount + 1>, kPieceCount> kMoveO
     { 9800, 5800, 3800, 3800, 1800, 0, 0 },  // kPawn
     { 9900, 5900, 3900, 3900, 1900, 0, 0 },  // kKing
 }};
+
+

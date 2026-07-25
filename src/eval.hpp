@@ -1,106 +1,23 @@
 #pragma once 
 
 #include "board.hpp"
+#include "global.hpp"
 #include "search_globals.hpp"
 
 
-constexpr std::array<Score, kSquareCount> kRookPosEval = 
+constexpr std::array<Bitboard, kColumnCount> kNearbyColumns = 
 {
-0, 0, 0, 20, 20, 0, 0, 0,
-15, 15, 15, 25, 25, 15, 15, 15,
-0, 0, 15, 25, 25, 15, 0, 0,
-0, 0, 25, 35, 35, 25, 0, 0,
-0, 0, 25, 35, 35, 25, 0, 0,
-0, 0, 15, 25, 25, 15, 0, 0,
-15, 25, 40, 40, 40, 40, 25, 15,
-0, 0, 15, 15, 15, 15, 0, 0
-};
-
-constexpr std::array<Score, kSquareCount> kBishopPosEval = 
-{
--15, 0, 0, 15, 15, 0, 0, -15,
-0, 15, 15, 30, 30, 15, 15, 0,
-0, 15, 30, 30, 30, 30, 15, 0,
-15, 30, 30, 45, 45, 30, 30, 15,
-15, 30, 30, 45, 45, 30, 30, 15,
-0, 15, 30, 30, 30, 30, 15, 0,
-0, 15, 15, 30, 30, 15, 15, 0,
--15, 0, 0, 15, 15, 0, 0, -15
-};
-
-constexpr std::array<Score, kSquareCount> kKnightPosEval = 
-{
--30, -15, -5, -5, -5, -5, -15, -30,
--15, 0, 15, 15, 15, 15, 0, -15,
--10, 15, 30, 30, 30, 30, 15, -10,
--10, 15, 30, 45, 45, 30, 15, -10,
--10, 15, 30, 45, 45, 30, 15, -10,
--10, 15, 30, 30, 30, 30, 15, -10,
--15, 0, 15, 15, 15, 15, 0, -15,
--30, -15, -5, -5, -5, -5, -5, -30
-};
-
-constexpr std::array<Score, kSquareCount> kPawnPosEval = 
-{
-0, 0, 0, 0, 0, 0, 0, 0,
-5, 5, 5, 5, 5, 5, 5, 5,
-10, 10, 30, 40, 40, 30, 10, 10,
-15, 15, 30, 40, 40, 30, 15, 15,
-20, 20, 20, 40, 40, 20, 20, 20,
-25, 25, 25, 25, 25, 25, 25, 25,
-30, 30, 30, 30, 30, 30, 30, 30,
-0, 0, 0, 0, 0, 0, 0, 0 // rank 8 doesnt matter since it is impossible
-};
-
-constexpr std::array<Score, kSquareCount> kPawnLatePosEval = 
-{
-0, 0, 0, 0, 0, 0, 0, 0,
--5, -5, -5, -5, -5, -5, -5, -5,
--10, -10, -10, -10, -10, -10, -10, -10,
-30, 30, 30, 40, 40, 30, 30, 30,
-40, 40, 40, 40, 40, 40, 40, 40,
-50, 50, 50, 50, 50, 50, 50, 50,
-60, 60, 60, 60, 60, 60, 60, 60,
-0, 0, 0, 0, 0, 0, 0, 0 // rank 8 doesnt matter since it is impossible
-};
-
-constexpr std::array<Score, kSquareCount> kQueenPosEval = 
-{
-0, 0, 15, 15, 15, 15, 0, 0,
-0, 15, 30, 30, 30, 30, 15, 0,
-15, 30, 45, 45, 45, 45, 30, 15,
-15, 30, 45, 60, 60, 45, 30, 15,
-15, 30, 45, 60, 60, 45, 30, 15,
-15, 30, 45, 45, 45, 45, 30, 15,
-0, 15, 30, 30, 30, 30, 15, 0,
-0, 0, 15, 15, 15, 15, 0, 0
-};
-
-constexpr std::array<Score, 64> kKingPosEval = 
-{
-10, 35, 10,  0,  0, 10, 35, 10,
-0, -5, -5, -5, -5, -5, -5, 0,
-0,  0, -20, -30, -30, -20,  0,  0,
--20, -30, -40, -50, -50, -40, -30, -20,
--30, -40, -50, -60, -60, -50, -40, -30,
--40, -50, -60, -70, -70, -60, -50, -40,
--50, -60, -70, -80, -80, -70, -60, -50,
--60, -70, -80, -90, -90, -80, -70, -60
-};
-
-constexpr std::array<Score, 64> kKingLatePosEval =
-{
--15, -10, -5, -5, -5, -5, -10, -15,
--10, -5, 0, 0, 0, 0, -5, -10,
--5, 0, 10, 10, 10, 10, 0, -5,
--5, 0, 20, 20, 20, 20, 0, -5,
--5, 0, 20, 20, 20, 20, 0, -5,
--5, 0, 10, 10, 10, 10, 0, -5,
--10, -5, 0, 0, 0, 0, -5, -10,
--15, -10, -5, -5, -5, -5, -10, -15
+    kColumnsBitboards[static_cast<size_t>(Column::B)],
+    kColumnsBitboards[static_cast<size_t>(Column::A)] | kColumnsBitboards[static_cast<size_t>(Column::C)],
+    kColumnsBitboards[static_cast<size_t>(Column::B)] | kColumnsBitboards[static_cast<size_t>(Column::D)],
+    kColumnsBitboards[static_cast<size_t>(Column::C)] | kColumnsBitboards[static_cast<size_t>(Column::E)],  
+    kColumnsBitboards[static_cast<size_t>(Column::D)] | kColumnsBitboards[static_cast<size_t>(Column::F)],
+    kColumnsBitboards[static_cast<size_t>(Column::E)] | kColumnsBitboards[static_cast<size_t>(Column::G)],
+    kColumnsBitboards[static_cast<size_t>(Column::F)] | kColumnsBitboards[static_cast<size_t>(Column::H)],
+    kColumnsBitboards[static_cast<size_t>(Column::G)]
 };
 
 namespace evaluation
 {
-    Score Evaluate(Board& board);
+    Score Evaluate(const Board& board);
 }

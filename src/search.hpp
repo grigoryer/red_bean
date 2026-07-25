@@ -2,10 +2,12 @@
 
 #include "board.hpp"
 #include "eval.hpp"
+#include "global.hpp"
 #include "move.hpp"
 #include "search_globals.hpp"
 #include "tt.hpp"
 #include "eval.hpp"
+#include <cstdint>
 #include <memory>
 
 
@@ -17,10 +19,13 @@ class Search
     std::array<std::array<ExtMove, kMaxPly>, kMaxPly> pv_table_{}; // stores the move list at ply.
     std::array<int, kMaxPly> pv_length_{}; // shows how many of moves in pv are valid.
 
-
     std::array<std::array<ExtMove, 2>, kMaxPly> killers_{}; // killer move table, 2 killer moves for ply.
     
+    // history heurstic for non capture moves.
+    std::array<std::array<std::array<MoveScore, kSquareCount>, kSquareCount>, kColorCount> history_heuristic_{};
+
     void UpdatePv(uint8_t ply, ExtMove move);
+    void AgeHistory();
     Score QuesSearch(Score alpha, Score beta, uint8_t depth);
     Score NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply);
     std::pair<ExtMove, Score> NegaMaxWrapper(int depth, Score alpha, Score beta, ExtMove prev_best);
