@@ -60,7 +60,7 @@ TEntry* TTable::GetEntry(Hash hash)
 
     for (auto& entry : array_[index].bucket_)
     {
-        if (entry.hash_ == hash) { node_hits++; return &entry; }
+        if (entry.hash_ == hash) { return &entry; }
     }
 
     return nullptr;

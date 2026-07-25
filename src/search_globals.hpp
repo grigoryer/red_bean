@@ -12,8 +12,10 @@ constexpr Score kNegInf = -kPosInf;
 
 constexpr Score kMateScore = kNegInf + 1000;
 constexpr Score kMateThreshold = kMateScore + 400;
+constexpr Score kDrawScore = -700;
 
-constexpr size_t kMaxSearchDepth{100};
+constexpr int kMaxPly = 64;
+constexpr size_t kMaxSearchDepth{kMaxPly};
 constexpr size_t kTTableSize = 1 << 20;
 constexpr size_t kTBucketSize = 1 << 2;
 
@@ -26,10 +28,13 @@ enum class NodeType : uint8_t
     LOWER
 };
 
+constexpr std::array<Score, kPieceCount> kScorePieceWorth { 900, 500, 300, 300, 100, 0 };
 constexpr std::array<MoveScore, kPieceCount> kPieceWorth { 900, 500, 300, 300, 100, 0 };
 
-constexpr MoveScore kCastleBoost = 1700; // arbirtrary, but i think safety it should be pushed above major piece captrung a pawn
+constexpr MoveScore kCastleBoost = 900; // after all types of captures.
 constexpr MoveScore kRefutationMoveBoost = 10000;
+constexpr MoveScore kKiller1Boost = 2000;
+constexpr MoveScore kKiller2Boost = 1900;
 
 // [attacker][victim]
 constexpr std::array<std::array<MoveScore, kPieceCount + 1>, kPieceCount> kMoveOrderingTable

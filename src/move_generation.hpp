@@ -251,13 +251,13 @@ void GenerateKingMoves(Board& board, MoveList& move_list, size_t checker_count)
 namespace legal
 {
 
+bool IsStoredMoveLegal(Board& board, ExtMove move);
 void CleanMoveList(Board& board, MoveList& move_list);
 
 template<GenType gen_type>
 void GenerateMoves(Board& board, MoveList& move_list)
 {
     Status& status = board.GetCurStatus();
-    between::SetCheckersAndBlockers(board, status);
 
     Color ally_color = status.cur_color_;
     Bitboard slider_checkers_board = status.checking_squares_;

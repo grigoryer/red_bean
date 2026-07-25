@@ -12,6 +12,6 @@ endif()
 
 file(GLOB SOURCES "src/*")
 
-add_executable(coffee_chess_engine ${SOURCES})
+add_executable(red_bean ${SOURCES})
 
-target_compile_options(coffee_chess_engine PRIVATE -march=native -std=c++17) # -O3 -flto   -fconstexpr-steps=100000000 
+target_compile_options(red_bean PRIVATE -march=native -std=c++17) #  -O3 -flto  -fconstexpr-steps=100000000 

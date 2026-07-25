@@ -32,7 +32,7 @@ private:
     std::array<Bitboard, kPieceCount> piece_bb_{};      // Bitboard for each piece
     std::array<Bitboard, kColorCount + 1> color_bb_{};  // Bitboard for each occupancy, + 1 for both sides, reduntand but will save lots of runtime calls later.
     
-    std::array<Status, 256> status_history_;
+    std::array<Status, 512> status_history_;
     uint16_t status_count_{};
 
     bool is_mate{false};
@@ -119,6 +119,27 @@ public:
         --status_count_;
     }
 
+    bool IsDraw()
+    {
+        if (status_history_[status_count_].half_move_ > 100)
+        {
+            return true;
+        }
+
+        int lower_bound = status_count_ - status_history_[status_count_].half_move_;
+        int same_hash_count{};
+        Hash cur_hash = status_history_[status_count_].hash_;
+
+        for (int i{status_count_}; i >= lower_bound; i -= 2)
+        {
+            if(status_history_[i].hash_ == cur_hash)
+            {
+                if(++same_hash_count > 2) { return true; }
+            }
+        }
+
+        return false;
+    }
 
     void ParseFenString(const std::string& fen_string);
     void ResetBoard();

@@ -1,6 +1,7 @@
 #include "move.hpp"
 #include "global.hpp"
 #include "board.hpp"
+#include "move_generation.hpp"
 #include "zobrist.hpp"
 #include <cstdlib>
 #include <cstddef>
@@ -245,7 +246,6 @@ void UndoMove(Board& board, ExtMove move)
     // Everything else (hash, castling, ep, clocks, checkers/blockers) comes back with the pop.
     board.PopStatus();
 }
-
 
 
 }  // namespace moving

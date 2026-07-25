@@ -2,10 +2,14 @@
 #include "global.hpp"
 #include <cstddef>
 
+namespace 
+{
+bool is_endgame = 0;
+
 template <Piece piece>
 inline Score EvaluatePosition(const Board& board)
 {
-    bool is_endgame = BitCount(board.GetColorBB(Color::kAll)) <= 14;
+    bool is_endgame = BitCount(board.GetColorBB(Color::kAll)) <= 16;
 
     const auto& table = [&is_endgame](const Board& b) -> const std::array<Score, kSquareCount>&
     {
@@ -40,6 +44,7 @@ inline Score EvaluatePosition(const Board& board)
     return pos_score;
 }
 
+
 inline Score EvaluatePieces(Board& board)
 {
     Score score = 0;
@@ -56,6 +61,9 @@ inline Score EvaluatePieces(Board& board)
 
     return score;
 }
+
+
+}  // namespace
 
 
 namespace evaluation

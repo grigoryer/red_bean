@@ -1,0 +1,9 @@
+SPRT testing after every change.
+
+
+Base contains aspiration window, tt at 2^20, alpha beta move ordering MVV_LVA
+
+
+
+1. Adding Killer Move Ordering.
+
