@@ -27,7 +27,14 @@ class Search
     void UpdatePv(uint8_t ply, ExtMove move);
     void AgeHistory();
     Score QuesSearch(Score alpha, Score beta, uint8_t depth);
+
+
+    bool SearchTTMove(ExtMove tt_move, Score& alpha, Score beta, uint8_t depth, uint8_t ply, Score& best_score, ExtMove& best_move, const Status& status, Score& out);
+    bool ProbeTTCutoff(const TEntry& entry, Score alpha, Score beta, uint8_t depth, Score& out) const;
+    void UpdateQuietHeuristics(ExtMove move, uint8_t depth, uint8_t ply);
     Score NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply);
+
+
     std::pair<ExtMove, Score> NegaMaxWrapper(int depth, Score alpha, Score beta, ExtMove prev_best);
     void BoostMoves(MoveList& current_moves, uint8_t ply);
     

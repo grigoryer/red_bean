@@ -17,7 +17,7 @@ public:
     int phase_num{};
     
     uint16_t full_move_{};
-    uint16_t half_move_{};    
+    uint8_t half_move_{};    
     
     Piece captured_piece_{Piece::kNone};
     Square enpassant_{Square::kNoSquare};

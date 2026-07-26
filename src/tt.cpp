@@ -4,12 +4,13 @@
 #include <iostream>
 #include <limits>
 
-TEntry::TEntry(Hash hash, Score score, Move refutation_move, uint8_t depth, NodeType type)
+TEntry::TEntry(Hash hash, Score score, Move refutation_move, uint8_t depth, NodeType type, uint8_t age)
     : hash_(hash),
       score_(score),
       refutation_move_(refutation_move),
       depth_(depth),
-      type_(type)
+      type_(type),
+      age_(age % 256)
 { }
 
 
@@ -18,7 +19,8 @@ TEntry* TTable::AddEntry(TEntry entry)
     size_t index = entry.hash_ % kTTableSize;
     auto* bucket_itr = array_[index].bucket_.begin();
     auto* worst_entry = bucket_itr;
-    uint8_t worst_depth = std::numeric_limits<uint8_t>::max();
+    //uint8_t worst_depth = std::numeric_limits<uint8_t>::max();
+    uint8_t worst_age = std::numeric_limits<uint8_t>::max();
 
     while (bucket_itr != array_[index].bucket_.end())
     {
@@ -41,9 +43,9 @@ TEntry* TTable::AddEntry(TEntry entry)
             break;
         };
 
-        if (bucket_itr->depth_ < worst_depth)
+        if (bucket_itr->age_ < worst_age)
         {
-            worst_depth = bucket_itr->depth_;
+            worst_age = bucket_itr->depth_;
             worst_entry = bucket_itr;
         }
         bucket_itr++;
@@ -58,9 +60,11 @@ TEntry* TTable::GetEntry(Hash hash)
 {
     size_t index = hash % kTTableSize;
 
+    node_requests++;
+
     for (auto& entry : array_[index].bucket_)
     {
-        if (entry.hash_ == hash) { return &entry; }
+        if (entry.hash_ == hash) { node_hits++; return &entry; }
     }
 
     return nullptr;
@@ -105,6 +109,7 @@ void TTable::ProfileTableSpread()
 
     std::cout << "\nFill Factor:            " << fill_factor
               << "\nNon Null Entries:       " << non_null_entries
+              << "\nHitRate: " << static_cast<double>(node_hits)/static_cast<double>(node_requests)
               << "\n--- Bucket Occupancy Histogram ---";
 
     for (size_t i = 0; i <= kTBucketSize; ++i)

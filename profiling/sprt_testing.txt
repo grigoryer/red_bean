@@ -18,3 +18,18 @@ LLR: 2.95 (100.1%) (-2.94, 2.94) [0.00, 10.00]
 SPRT ([0.00, 10.00]) completed - H1 was accepted
 Finished match
 Total Time: 00:20:54 (hours:minutes:seconds)
+
+
+optmization
+
+
+Age and optimzation vs safety
+--------------------------------------------------
+Results of Age vs Safety (10+0.1, NULL, NULL, opening_book.pgn):
+Elo: 51.74 +/- 22.27, nElo: 74.97 +/- 31.75
+LOS: 100.00 %, DrawRatio: 39.13 %, PairsRatio: 2.11
+Games: 460, Wins: 165, Losses: 97, Draws: 198, Points: 264.0 (57.39 %)
+Ptnml(0-2): [7, 38, 90, 70, 25], WL/DD Ratio: 1.00
+LLR: 2.54 (86.4%) (-2.94, 2.94) [0.00, 10.00]
+--------------------------------------------------
+

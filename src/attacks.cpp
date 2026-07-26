@@ -6,6 +6,7 @@
 namespace
 {
 
+
 constexpr std::array<std::array<Bitboard, kSquareCount>, kColorCount> GeneratePawnAttacks()
 {
     constexpr int kNWShift = 7;
@@ -254,7 +255,6 @@ constexpr Bitboard GenOccupancy(Bitboard attack_mask, const size_t index)
     return occupancy;
 }
 
-
 constexpr size_t kBishopRelevantBitCount = 1024;
 
 
@@ -326,6 +326,19 @@ constexpr Bitboard MaskBishopAttacks(const Square sqr)
     return bishop_mask;
 }
 
+constexpr std::array<Bitboard, kSquareCount> GenerateAllMaskBishopAttacks()
+{
+    std::array<Bitboard, kSquareCount> array_masked_bishop_attacks{};
+    for (size_t i{}; i < kSquareCount; ++i)
+    {
+        array_masked_bishop_attacks[i] = MaskBishopAttacks(static_cast<Square>(i));
+    }
+
+    return array_masked_bishop_attacks;
+}
+
+constexpr std::array<Bitboard, kSquareCount> kMaskedBishopAttacks = GenerateAllMaskBishopAttacks();
+
 // For each ray (NE, SW, NW, SE) stop at the first occupied square; the rest is blocked.
 constexpr Bitboard GenBishopAttacksWithOccupancy(const Bitboard& occ, const Square sqr) 
 {
@@ -366,14 +379,13 @@ constexpr Bitboard GenBishopAttacksWithOccupancy(const Bitboard& occ, const Squa
     return attacks;
 }
 
-
 constexpr std::array<std::array<Bitboard, kBishopRelevantBitCount>, kSquareCount> GenerateBishopAttacks()
 {
     std::array<std::array<Bitboard, kBishopRelevantBitCount>, kSquareCount> attack_table{};
 
     for (size_t sqr{}; sqr < kSquareCount; sqr++) //Square 
     {
-        Bitboard mask = MaskBishopAttacks(ToSquare(sqr));
+        Bitboard mask = kMaskedBishopAttacks[sqr];
         size_t bits = BitCount(mask);
     
         for(size_t i{}; i < (1 << bits); i++) // Count of relevant bits.
@@ -453,6 +465,20 @@ constexpr Bitboard MaskRookAttacks(const Square sqr)
     return rook_mask;
 }
 
+
+constexpr std::array<Bitboard, kSquareCount> GenerateAllMaskRookAttacks()
+{
+    std::array<Bitboard, kSquareCount> array_masked_rook_attacks{};
+    for (size_t i{}; i < kSquareCount; ++i)
+    {
+        array_masked_rook_attacks[i] = MaskRookAttacks(static_cast<Square>(i));
+    }
+
+    return array_masked_rook_attacks;
+}
+
+constexpr std::array<Bitboard, kSquareCount> kMaskedRookAttacks = GenerateAllMaskRookAttacks();
+
 // Generate rook attacks for a given occupancy, on the fly.
 // Unlike the masks, rays run all the way to the edge (inclusive): a blocker
 // on an edge square still stops the ray, so we can't drop the walls here.
@@ -501,7 +527,7 @@ constexpr std::array<std::array<Bitboard, kRookRelevantBitCount>, kSquareCount> 
 
     for (size_t sqr{}; sqr < kSquareCount; sqr++) //Square 
     {
-        Bitboard mask = MaskRookAttacks(ToSquare(sqr));
+        Bitboard mask = kMaskedRookAttacks[sqr];
         size_t bits = BitCount(mask);
     
         for(size_t i{}; i < (1 << bits); i++) // Count of relevant bits.
@@ -518,14 +544,12 @@ constexpr std::array<std::array<Bitboard, kRookRelevantBitCount>, kSquareCount> 
 };
 
 
-
 constexpr std::array<Bitboard, kSquareCount> kKingAttacks = GenerateKingAttacks();
 constexpr std::array<Bitboard, kSquareCount> kKnightAttacks = GenerateKnightAttacks();
 constexpr std::array<std::array<Bitboard, kSquareCount>, kColorCount> kPawnAttacks = GeneratePawnAttacks();
 
 constexpr std::array<std::array<Bitboard, kBishopRelevantBitCount>, kSquareCount> kBishopAttacks = GenerateBishopAttacks();
-//change of constexpr since it takes too long currently for release change to constexpr
-const std::array<std::array<Bitboard, kRookRelevantBitCount>, kSquareCount> kRookAttacks = GenerateRookAttacks();
+constexpr std::array<std::array<Bitboard, kRookRelevantBitCount>, kSquareCount> kRookAttacks = GenerateRookAttacks(); //change of constexpr since it takes too long currently for release change to constexpr
 
 
 
@@ -559,7 +583,7 @@ Bitboard GetKnightAttack(Square sqr)
 Bitboard GetBishopAttack(Bitboard occ, Square sqr)
 {
     size_t sqr_index = ToIndex(sqr);
-    occ &= MaskBishopAttacks(sqr);  
+    occ &= kMaskedBishopAttacks[sqr_index];  
     size_t index{(occ * bishop_magics[sqr_index]) >> bishop_shift[sqr_index]}; 
 
     return kBishopAttacks[sqr_index][index];
@@ -569,7 +593,7 @@ Bitboard GetBishopAttack(Bitboard occ, Square sqr)
 Bitboard GetRookAttack(Bitboard occ, Square sqr)
 {
     size_t sqr_index = ToIndex(sqr);
-    occ &= MaskRookAttacks(sqr);  
+    occ &= kMaskedRookAttacks[sqr_index];  
     size_t index{(occ * rook_magics[sqr_index]) >> rook_shift[sqr_index]}; 
 
     return kRookAttacks[sqr_index][index];
@@ -579,8 +603,8 @@ Bitboard GetRookAttack(Bitboard occ, Square sqr)
 Bitboard GetQueenAttack(Bitboard occ, Square sqr)
 {
     size_t sqr_index = ToIndex(sqr);
-    Bitboard bishop_occ = occ & MaskBishopAttacks(sqr);
-    Bitboard rook_occ = occ & MaskRookAttacks(sqr);
+    Bitboard bishop_occ = occ & kMaskedBishopAttacks[sqr_index];
+    Bitboard rook_occ = occ & kMaskedRookAttacks[sqr_index];
 
     size_t bishop_index{(bishop_occ * bishop_magics[sqr_index]) >> bishop_shift[sqr_index]};
     size_t rook_index{(rook_occ * rook_magics[sqr_index]) >> rook_shift[sqr_index]}; 

@@ -14,14 +14,15 @@
 #include <iostream>
 #include <ratio>
 #include <string>
+#include <thread>
 
 auto TestSearchSpeed(Board board, Search& searcher)
 {
-
+    std::this_thread::sleep_for(std::chrono::seconds(2));
     PrintPieceBoard(board);
     PrintStatus(board.GetCurStatus());
     auto start = std::chrono::high_resolution_clock::now();
-    Move move = searcher.FindBestMove(15);
+    Move move = searcher.FindBestMove(10);
     auto end = std::chrono::high_resolution_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
@@ -44,6 +45,18 @@ int main()
     // Board board{kPerft2};
     // Search searcher{board, flag};
     // TestSearchSpeed(board, searcher);
+
+    // while(std::cin.get())
+    // {
+    //     PrintPieceBoard(board);
+    //     PrintStatus(board.GetCurStatus());
+    //     ExtMove move = searcher.FindBestMove(10);
+    //     moving::MakeMove(board, move);
+    //     PrintPieceBoard(board);
+    //     PrintMove(move);
+    //     searcher.ttable_->ProfileTableSpread();
+    //     ExtMove move2 = searcher.FindBestMove(10);
+    // }
 
     
     return 0;

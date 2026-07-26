@@ -15,6 +15,7 @@ Search::Search(Board& board, std::atomic<bool>& stop_flag)
 
 
 
+
 void Search::UpdatePv(uint8_t ply, ExtMove move)
 {
     pv_table_[ply][0] = move;
@@ -101,12 +102,19 @@ Score Search::QuesSearch(Score alpha, Score beta, uint8_t depth)
     MoveList noisy_moves;
     between::SetCheckersAndBlockers(board_, board_.GetCurStatus());
     generation::legal::GenerateMoves<GenType::kNoisy>(board_, noisy_moves);
+    auto& status = board_.GetCurStatus();
 
     for (size_t i{}; i < noisy_moves.move_count; ++i)
     {
-        nodes_searched++;
         PickNextMove(noisy_moves, i);
         ExtMove move = noisy_moves.list[i];
+       
+        bool legal = generation::legal::IsGeneratedMoveLegal(board_, status, move, status.blocking_squares_, status.cur_color_, GetEnemyColor(status.cur_color_));
+        if (!legal) { continue; }
+        
+        nodes_searched++;
+
+        
         moving::MakeMove(board_, move);
         Score score = -QuesSearch(-beta, -alpha, depth - 1);
         moving::UndoMove(board_, move);
@@ -121,6 +129,73 @@ Score Search::QuesSearch(Score alpha, Score beta, uint8_t depth)
     return best_score;
 }
 
+
+
+// the three TT bound checks. True => caller returns `out`.
+bool Search::ProbeTTCutoff(const TEntry& entry, Score alpha, Score beta, uint8_t depth, Score& out) const
+{
+    Score tt_score = entry.score_;
+    if (entry.depth_ >= depth)
+    {
+        // Exact means this value was evaluated completely inside the tree (no cutoffs), so no need to search it again.
+        if (entry.type_ == NodeType::EXACT) { out = tt_score; return true; }
+
+        // Fail low or the upper bound of that branch. Any move in this branch did not exceed alpha so if the saved
+        // score of this move is less than current alpha we dont need to search again.
+        if (entry.type_ == NodeType::UPPER && tt_score <= alpha) { out = tt_score; return true; }
+
+        // Fail high or the lower bound for that branch. Previously this move was at least this score, it could be
+        // more. So if it exceeds our current beta same thing will happen so we can return early.
+        if (entry.type_ == NodeType::LOWER && tt_score >= beta) { out = tt_score; return true; }
+    }
+    return false;
+}
+
+bool Search::SearchTTMove(ExtMove tt_move, Score& alpha, Score beta, uint8_t depth, uint8_t ply, Score& best_score, ExtMove& best_move, const Status& status, Score& out)
+{
+    if (!generation::legal::IsStoredMoveLegal(board_, tt_move)) { return false; }
+
+    moving::MakeMove(board_, tt_move);
+    Score tt_move_score = -NegaMax(-beta, -alpha, depth - 1, ply + 1);
+    
+    moving::UndoMove(board_, tt_move);
+
+    // current score exceeded the acceptable threshhold of the opposing player, so no need to search rest of branch.
+    if (tt_move_score >= beta && !stop_flag_)
+    {
+        ttable_->AddEntry({board_.GetCurStatus().hash_, tt_move_score, tt_move, depth,
+                            NodeType::LOWER, status.half_move_});
+        out = tt_move_score;
+        return true;
+    }
+    // if score is now exceeding alpha this is a new high score, adjust alpha and also update the pv
+    best_score = tt_move_score;
+    best_move  = tt_move;
+    if (tt_move_score > alpha)
+    {
+        alpha = tt_move_score;
+        UpdatePv(ply, tt_move);
+    }
+    return false;
+}
+
+
+void Search::UpdateQuietHeuristics(ExtMove move, uint8_t depth, uint8_t ply)
+{
+    // On a non capture move we update the history heuristic and killer move if needed.
+    if (board_.GetPieceOnSquare(move.GetTo()) != Piece::kNone) { return; }
+
+    if (!(killers_[ply][0] == move))
+    {
+        killers_[ply][1] = killers_[ply][0];
+        killers_[ply][0] = move;
+    }
+
+    auto& entry = history_heuristic_[static_cast<size_t>(board_.GetCurStatus().cur_color_)][static_cast<size_t>(move.GetFrom())][static_cast<size_t>(move.GetTo())];
+    entry = static_cast<MoveScore>(entry + (depth * depth));
+    
+    if (entry >= kHistoryMax) { AgeHistory(); }
+}
 // Min and max player are combined into one, where alpha is equal to the current players score and beta is equal to the opposing player score.
 // Alpha will be better if it is greater than the opposing player, so for black we need to flip the evaluation * -1.
 // So greater score will be better no matter color.
@@ -137,51 +212,20 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply) // NO
     Score best_score = kNegInf; 
     ExtMove best_move{};
     Score orig_alpha = alpha;
-    between::SetCheckersAndBlockers(board_, board_.GetCurStatus()); // set checker blockers for each position.
+    auto& status = board_.GetCurStatus();
+    Color enemy_color = GetEnemyColor(status.cur_color_);
+    between::SetCheckersAndBlockers(board_, status); // set checker blockers for each position.
 
-    TEntry* probe_entry = ttable_->GetEntry(board_.GetCurStatus().hash_);
+    TEntry* probe_entry = ttable_->GetEntry(status.hash_);
     if (probe_entry != nullptr)
     {
-        Score tt_score = probe_entry->score_;
-        if (probe_entry->depth_ >= depth)
-        {
-            // Exact means this avalue was evlauted completly inside the tree (no cutoffs), so no need to search it again.
-            if (probe_entry->type_ == NodeType::EXACT) { return tt_score; }
-    
-            // Fail low or the upper bound of that branch. Any move in this branch did not exceed alpha so if the saved score of this move is 
-            // less than current alpha we dont need to search again.
-            if (probe_entry->type_ == NodeType::UPPER && tt_score <= alpha) { return tt_score; }
-    
-            // Fail high or the lower bound for that branch. Previously this move was at least this score, it could be more. So if it exceeds 
-            // our current beta same thing will happen so we can return early.
-            if (probe_entry->type_ == NodeType::LOWER && tt_score >= beta) { return tt_score; }
-        }
+        Score cutoff{};
+        // Check if we can pprune based on tt entry aka PV of this position. If cutoff then return prune this branch.
+        if (ProbeTTCutoff(*probe_entry, alpha, beta, depth, cutoff)) { return cutoff; }
 
-
+        // If no prune but still entry, check the stored move first, returns true if causes a beta cutoff. Else updates alpha/best_score and best_move.
         auto tt_move = static_cast<ExtMove>(probe_entry->refutation_move_);
-       
-        if (generation::legal::IsStoredMoveLegal(board_, tt_move))
-        {
-            moving::MakeMove(board_, tt_move);
-            Score tt_move_score = -NegaMax(-beta, -alpha, depth - 1, ply + 1);
-            moving::UndoMove(board_, tt_move);
-
-            // current score exceeded the acceptable threshhold of the opposing player, so no need to search rest of branch.
-            if (tt_move_score >= beta && !stop_flag_)
-            {
-                ttable_->AddEntry({board_.GetCurStatus().hash_, tt_move_score, tt_move, depth, NodeType::LOWER});
-                return tt_move_score; 
-            }
-
-            // if score is now exceeding alpha this is a new high score, adjust alpha and also update the pv
-            best_score = tt_move_score;
-            best_move = tt_move;
-            if (tt_move_score > alpha)
-            {
-                alpha = tt_move_score;
-                UpdatePv(ply, tt_move);
-            }
-        }
+        if (SearchTTMove(tt_move, alpha, beta, depth, ply, best_score, best_move, status, cutoff)) { return cutoff; }
     }
 
     // stop flag check, can do every node since it is atomic check.
@@ -191,44 +235,30 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply) // NO
     generation::legal::GenerateMoves<GenType::kAll>(board_, possible_moves); 
     BoostMoves(possible_moves, ply);
 
-    // If 0 moves possible in all if we are in check it is mate and if not then it is a stalemate
-    if (possible_moves.move_count == 0) { return (board_.GetCurStatus().checking_squares_ != 0) ? static_cast<Score>(kMateScore + ply) : 0; }
-
     // After getting the score we can add this position to Transposition table.
+    size_t legal_move_count{};
     for (size_t i{}; i < possible_moves.move_count; ++i)
     {
-        nodes_searched++;
         PickNextMove(possible_moves, i);
         ExtMove move = possible_moves.list[i];
-        if (probe_entry != nullptr && move == probe_entry->refutation_move_) { continue; }
+        bool legal = generation::legal::IsGeneratedMoveLegal(board_, status, move, status.blocking_squares_, status.cur_color_, enemy_color);
+        if (!legal || (probe_entry != nullptr && move == probe_entry->refutation_move_)) { continue; }
+        
+        nodes_searched++;
+        legal_move_count++;
 
         moving::MakeMove(board_, move);    
         // Since we always maximize for each player, we need to swap beta and alpha. Since the beta for maximizing player is the alpha for minimizing player and vice versa.
         // We need to swap signs, since a worse score for current player is a better score for the opposing player.
         // Also we need to flip the score when it is returned since again that is opposing players perspective.
         Score score = -NegaMax(-beta, -alpha, depth - 1, ply + 1);
-    
         moving::UndoMove(board_, move);
 
         // current score exceeded the acceptable threshhold of the opposing player, so no need to search rest of branch.
         if (score >= beta && !stop_flag_)
         {
-            // On a non capture move we update the history heuristic and killer move if needed.
-            if (board_.GetPieceOnSquare(move.GetTo()) == Piece::kNone)
-            {
-                if (!(killers_[ply][0] == move))
-                {
-                    killers_[ply][1] = killers_[ply][0];
-                    killers_[ply][0] = move;
-                }
-
-                auto& entry = history_heuristic_[static_cast<size_t>(board_.GetCurStatus().cur_color_)][static_cast<size_t>(move.GetFrom())][static_cast<size_t>(move.GetTo())];
-
-                entry = static_cast<MoveScore>(entry + (depth * depth));
-                if (entry >= kHistoryMax) { AgeHistory(); }
-            }
-            
-            ttable_->AddEntry({board_.GetCurStatus().hash_, score, move, depth, NodeType::LOWER});
+            UpdateQuietHeuristics(move, depth, ply); // Update the quiet moves history and killer moves.
+            ttable_->AddEntry({board_.GetCurStatus().hash_, score, move, depth, NodeType::LOWER, status.half_move_});
             return score; 
         }
         // if score is now exceeding alpha this is a new high score, adjust alpha, update pv, and best score.
@@ -243,22 +273,17 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply) // NO
             }
         }
     }
-    
-    NodeType type = NodeType::UPPER;
-    if (best_score > orig_alpha)
-    {
-        type = NodeType::EXACT; // Exceeded alpha but lower than bet, its exactly inside our range.
-    }
 
-    if (!stop_flag_)
-    {
-        ttable_->AddEntry({board_.GetCurStatus().hash_, best_score, best_move, depth, type});
-    }
+    // If 0 moves possible in all if we are in check it is mate and if not then it is a stalemate
+    if (legal_move_count == 0) { return (board_.GetCurStatus().checking_squares_ != 0) ? static_cast<Score>(kMateScore + ply) : 0; }
+    NodeType type = NodeType::UPPER;
+    
+    if (best_score > orig_alpha) { type = NodeType::EXACT; } // Exceeded alpha but lower than bet, its exactly inside our range.
+    
+    if (!stop_flag_) { ttable_->AddEntry({board_.GetCurStatus().hash_, best_score, best_move, depth, type, status.half_move_}); }
 
     return best_score;
 };
-
-
 
 std::pair<ExtMove, Score> Search::NegaMaxWrapper(int depth, Score alpha, Score beta, ExtMove prev_best)
 {
@@ -268,13 +293,12 @@ std::pair<ExtMove, Score> Search::NegaMaxWrapper(int depth, Score alpha, Score b
     MoveList possible_moves;
     between::SetCheckersAndBlockers(board_, board_.GetCurStatus());
     generation::legal::GenerateMoves<GenType::kAll>(board_, possible_moves); 
+    generation::legal::CleanMoveList(board_, possible_moves);
 
     if (possible_moves.move_count == 0 || stop_flag_) { return {best_move, best_score}; } // mate or stalemate
     if (board_.IsDraw()) { return {best_move, kDrawScore}; }
 
-
     pv_length_[0] = 0;
-
     for (size_t i{}; i < possible_moves.move_count; ++i)
     {
         if (possible_moves.list[i] == prev_best)
@@ -303,8 +327,6 @@ std::pair<ExtMove, Score> Search::NegaMaxWrapper(int depth, Score alpha, Score b
         }
     }
 
-
-
     return {best_move, best_score};
 };
 
@@ -317,6 +339,8 @@ ExtMove Search::FindBestMove(size_t depth)
     Score beta = kPosInf;
 
     ExtMove best_move{};
+    ttable_->node_hits = 0;
+    ttable_->node_requests = 0;
 
     for (int i{1}; i <= depth; i++)
     {

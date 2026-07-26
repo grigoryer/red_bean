@@ -73,8 +73,10 @@ public:
 class MoveList
 {
 public:
-    std::array<ExtMove, 256> list;
+    std::array<ExtMove, 128> list;
     size_t move_count{};
+
+    MoveList() = default;
 
     void addMove(ExtMove move)
     {
