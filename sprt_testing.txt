@@ -5,5 +5,16 @@ Base contains aspiration window, tt at 2^20, alpha beta move ordering MVV_LVA
 
 
 
-1. Adding Killer Move Ordering.
+1. New Eval and Decrease draw score to -50.
 
+--------------------------------------------------
+Results of New Eval vs History (10+0.1, NULL, NULL, opening_book.pgn):
+Elo: 119.50 +/- 31.02, nElo: 168.82 +/- 40.41
+LOS: 100.00 %, DrawRatio: 28.87 %, PairsRatio: 5.73
+Games: 284, Wins: 136, Losses: 42, Draws: 106, Points: 189.0 (66.55 %)
+Ptnml(0-2): [4, 11, 41, 59, 27], WL/DD Ratio: 1.28
+LLR: 2.95 (100.1%) (-2.94, 2.94) [0.00, 10.00]
+--------------------------------------------------
+SPRT ([0.00, 10.00]) completed - H1 was accepted
+Finished match
+Total Time: 00:20:54 (hours:minutes:seconds)

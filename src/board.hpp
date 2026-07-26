@@ -14,6 +14,7 @@ public:
     Bitboard leaper_checking_squares_{};
     
     Bitboard hash_{};
+    int phase_num{};
     
     uint16_t full_move_{};
     uint16_t half_move_{};    
@@ -35,8 +36,7 @@ private:
     std::array<Status, 512> status_history_;
     uint16_t status_count_{};
 
-    bool is_mate{false};
-
+    
 public:
 
     Board();
@@ -132,7 +132,6 @@ public:
         {
             if (status_history_[i].hash_ == cur.hash_)
             {
-                // In-tree repetition: one match is enough. Below the search root it takes two.
                 if (++same_hash_count >= 2) { return true; }
             }
         }

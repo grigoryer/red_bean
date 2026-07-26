@@ -1,3 +1,4 @@
+#include "eval_constants.hpp"
 #include "move.hpp"
 #include "global.hpp"
 #include "board.hpp"
@@ -144,6 +145,7 @@ void MakeMove(Board& board, ExtMove move) //NOLINT
     if (status.captured_piece_ != Piece::kNone) // remove captured piece color.
     {
         RemovePiece(board, status.captured_piece_, to_sqr, enemy_color, hash);
+        status.phase_num -= kPhaseWeights[static_cast<size_t>(status.captured_piece_)]; // adjust phase with one line.
         reset_halfclock = true; // reset the half move since capture.
     }
 
@@ -173,6 +175,7 @@ void MakeMove(Board& board, ExtMove move) //NOLINT
             RemovePiece(board, Piece::kPawn, from_sqr, ally_color, hash);
             SetPiece(board, move.GetPromo(), to_sqr, ally_color, hash);
             ChangeColor(status);
+            status.phase_num += kPhaseWeights[static_cast<size_t>(move.GetPromo())]; // adjust phase with one line.
             status.half_move_ = 0;
             return;
         }

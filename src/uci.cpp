@@ -152,7 +152,7 @@ void UCI::ExecuteSearch(const std::string& args)
     stop_flag = true;
     search_thread.join();
 
-    std::cout << "bestmove " << MoveToString(best_move) << "\n";
+    std::cout << "bestmove " << ((best_move.GetFrom() == best_move.GetTo()) ? "0" : MoveToString(best_move)) << "\n";
 }
 
 

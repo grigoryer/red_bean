@@ -1,4 +1,5 @@
 #include "eval.hpp"
+#include <algorithm>
 #include "attacks.hpp"
 #include "eval_constants.hpp"
 #include "global.hpp"
@@ -6,117 +7,152 @@
 
 namespace 
 {
-bool is_endgame = 0;
 
-
-template <Piece piece>
-inline Score EvaluatePiece(const Board& board, std::array<Score, kSquareCount> table)
+struct EvalPair
 {
-    const Bitboard occ = board.GetColorBB(Color::kAll);
-    Score score{};
+    int mg{};
+    int eg{};
+};
 
-    Bitboard white_pieces = board.GetColoredPieceBB(Color::kWhite, piece);
-    while (white_pieces)
+template <Color color, Piece piece>
+inline void EvaluateMaterialPiece(const Board& board, EvalPair& acc, int& non_pawn_material, Bitboard occ, Bitboard pawn_attacks)
+{
+    constexpr int kSign = (color == Color::kBlack) ? -1 : 1;
+    
+    const Bitboard mobility_area = ~(board.GetColorBB(color) | pawn_attacks);
+
+    Bitboard piece_bb = board.GetColoredPieceBB(color, piece);
+    const int piece_count = static_cast<int>(BitCount(piece_bb));
+
+    // Phase-independent terms same contribution to both mg and eg.
+    int flat = kPieceValues[static_cast<size_t>(piece)] * piece_count;
+
+    if constexpr (piece == Piece::kBishop)
     {
-        Square sqr = PopLsb(white_pieces);
-        score += kPieceValues[static_cast<size_t>(piece)];
-        score += table[static_cast<size_t>(sqr)];
-        score += kVisionBonuses[static_cast<size_t>(piece)] * BitCount(attacks::getPieceAttack<piece>(occ, sqr, Color::kWhite));
+        if (piece_count > 1) { flat += kBishopPairBonus; }
+    }
+    else if constexpr (piece == Piece::kKnight)
+    {
+        if (piece_count > 1) { flat += kKnightPairPenalty; }
+    }
+    else if constexpr (piece == Piece::kRook)
+    {
+        if (piece_count > 1) { flat += kRookPairPenalty; }
+    }
+    else if constexpr (piece == Piece::kPawn)
+    {
+        if (piece_count == 0) { flat += kNoPawnsPenalty; }
     }
 
-    Bitboard black_pieces = board.GetColoredPieceBB(Color::kBlack, piece);
-    while (black_pieces)
+    if constexpr (piece != Piece::kPawn)
     {
-        Square sqr = PopLsb(black_pieces);
-        score -= kPieceValues[static_cast<size_t>(piece)];
-        score -= table[static_cast<size_t>(sqr) ^ 56];
-        score -= kVisionBonuses[static_cast<size_t>(piece)] * BitCount(attacks::getPieceAttack<piece>(occ, sqr, Color::kBlack));
+        non_pawn_material += kPieceValues[static_cast<size_t>(piece)] * piece_count;
     }
 
-    return score;
+    acc.mg += kSign * flat;
+    acc.eg += kSign * flat;
+
+    while (piece_bb)
+    {
+        Square sqr = PopLsb(piece_bb);
+        Square pst_sqr = sqr;
+
+        if constexpr (color == Color::kBlack) { pst_sqr = static_cast<Square>(static_cast<int>(sqr) ^ 56); }
+
+        if constexpr (piece != Piece::kPawn)
+        {
+            int vision_count = BitCount(attacks::getPieceAttack<piece>(occ, sqr, color) & mobility_area);
+    
+            acc.mg += kSign * kMG_VisionBonuses[static_cast<size_t>(piece)] * vision_count;
+            acc.eg += kSign * kEG_VisionBonuses[static_cast<size_t>(piece)] * vision_count;
+        }
+
+        acc.mg += kSign * GetPSTScore<piece, Phase::kMg>(pst_sqr);
+        acc.eg += kSign * GetPSTScore<piece, Phase::kEg>(pst_sqr);
+    }
 }
 
-inline Score EvaluatePawns(const Board& board, std::array<Score, kSquareCount> pos_table)
+
+template<Color color>
+inline void KingSafety(Board& board, Bitboard ally_pawns, EvalPair& acc, Square ksqr, Bitboard occ)
 {
-    Score score = 0;
-    const Bitboard white_pawns = board.GetColoredPieceBB(Color::kWhite, Piece::kPawn);
-    Bitboard modified_white = white_pawns;
+    constexpr int kSign = (color == Color::kBlack) ? -1 : 1;
+    
+    // King position
+    Square pst_sqr = ksqr;
+    if constexpr (color == Color::kBlack) { pst_sqr = static_cast<Square>(static_cast<int>(ksqr) ^ 56); }
+    
+    // How visible a king is.
+    acc.mg += kSign * BitCount(attacks::GetQueenAttack(occ, ksqr) & ~board.GetColorBB(color))
+        * kMG_VisionBonuses[static_cast<size_t>(Piece::kKing)];
 
-    const Bitboard black_pawns = board.GetColoredPieceBB(Color::kBlack, Piece::kPawn);
-    Bitboard modified_black = black_pawns;
+    //PST
+    acc.mg += kSign * GetPSTScore<Piece::kKing, Phase::kMg>(pst_sqr);
+    acc.eg += kSign * GetPSTScore<Piece::kKing, Phase::kEg>(pst_sqr);
 
-    // Need to address pawn structure, aka next to each other. Past pawns aka pawns with no one in front or next to. And king safety.
-    while (modified_white)
+    // Pawn shield
+    constexpr int kDir = (color == Color::kBlack) ? -1 : 1;
+    const int row = static_cast<int>(GetSquareRow(ksqr)) + kDir;
+    
+    if (row < static_cast<int>(Row::_2) || row > static_cast<int>(Row::_7))
     {
-        Square sqr = PopLsb(modified_white);
-        Column cur_col = GetSquareCol(sqr);
-
-        score += kPieceValues[static_cast<size_t>(Piece::kPawn)]; // piece value 
-
-        score += pos_table[static_cast<size_t>(sqr)]; // position of pawn
-
-        // Get the nearby columns for the current pawn
-        score += kPawnNeighborBonus * BitCount(kNearbyColumns[static_cast<size_t>(cur_col)] & white_pawns);
-        
-        // Add score for past pawns.
-        score += (BitCount(kNearbyColumns[static_cast<size_t>(cur_col)] & ToBitboard(cur_col) & black_pawns) == 0 ? kPassedPawnBonus : 0);
+        acc.mg += kSign * kPawnShieldPenality;
+        return;
     }
 
-    while (modified_black)
-    {
-        Square sqr = PopLsb(modified_black);
-        Column cur_col = GetSquareCol(sqr);
+    const Row row_infront = static_cast<Row>(row);
 
-        score -= kPieceValues[static_cast<size_t>(Piece::kPawn)]; //piece val
+    Column col = std::clamp(GetSquareCol(ksqr), Column::B, Column::G);
+    ally_pawns &= ((kNearbyColumns[static_cast<size_t>(col)] | ToBitboard(col)) & ToBitboard(row_infront));
 
-        score -= pos_table[static_cast<size_t>(sqr) ^ 56]; // position of pawn
-
-        // Get the nearby columns for the current pawn
-        score -= kPawnNeighborBonus * BitCount(kNearbyColumns[static_cast<size_t>(cur_col)] & black_pawns);
-
-        // Add score for past pawns.
-        score -= (BitCount(kNearbyColumns[static_cast<size_t>(cur_col)] & ToBitboard(cur_col) & white_pawns) == 0 ? kPassedPawnBonus : 0);
-    }
-
-    return score;
+    if (BitCount(ally_pawns) >= 3) { acc.mg += kSign * kPawnShieldBonus; }
+    else { acc.mg += kSign * kPawnShieldPenality; }
 }
 
-inline Score EvaluateKings(const Board& board, std::array<Score, kSquareCount> pos_table, bool is_endgame)
+inline Score EvaluateMaterial(Board& board)
 {
-    Score score = 0;
-    const Bitboard white_pawns = board.GetColoredPieceBB(Color::kWhite, Piece::kPawn);
-    const Bitboard black_pawns = board.GetColoredPieceBB(Color::kBlack, Piece::kPawn);
+    EvalPair acc{};
+    int white_material{};
+    int black_material{};
 
-    Square white_ksqr = GetLsb(board.GetColoredPieceBB(Color::kWhite, Piece::kKing));
-    score += pos_table[static_cast<size_t>(white_ksqr)];
+    Bitboard occ = board.GetColorBB(Color::kAll);
+    Bitboard white_pawns = board.GetColoredPieceBB(Color::kWhite, Piece::kPawn);
+    Bitboard black_pawns = board.GetColoredPieceBB(Color::kBlack, Piece::kPawn);
 
-    if (!is_endgame)
+    Bitboard white_pawn_attacks = attacks::GetPawnAttacks(board, Color::kWhite);
+    Bitboard black_pawn_attacks = attacks::GetPawnAttacks(board, Color::kBlack);
+
+    EvaluateMaterialPiece<Color::kWhite, Piece::kQueen>(board, acc, white_material, occ, black_pawn_attacks);
+    EvaluateMaterialPiece<Color::kWhite, Piece::kRook>(board, acc, white_material, occ, black_pawn_attacks);
+    EvaluateMaterialPiece<Color::kWhite, Piece::kBishop>(board, acc, white_material, occ, black_pawn_attacks);
+    EvaluateMaterialPiece<Color::kWhite, Piece::kKnight>(board, acc, white_material, occ, black_pawn_attacks);
+    EvaluateMaterialPiece<Color::kWhite, Piece::kPawn>(board, acc, white_material, occ, black_pawn_attacks);
+
+    EvaluateMaterialPiece<Color::kBlack, Piece::kQueen>(board, acc, black_material, occ, white_pawn_attacks);
+    EvaluateMaterialPiece<Color::kBlack, Piece::kRook>(board, acc, black_material, occ, white_pawn_attacks);
+    EvaluateMaterialPiece<Color::kBlack, Piece::kBishop>(board, acc, black_material, occ, white_pawn_attacks);
+    EvaluateMaterialPiece<Color::kBlack, Piece::kKnight>(board, acc, black_material, occ, white_pawn_attacks);
+    EvaluateMaterialPiece<Color::kBlack, Piece::kPawn>(board, acc, black_material, occ, white_pawn_attacks);
+
+    KingSafety<Color::kWhite>(board, white_pawns, acc, (GetLsb(board.GetColoredPieceBB(Color::kWhite, Piece::kKing))), occ);
+    KingSafety<Color::kBlack>(board, black_pawns, acc, (GetLsb(board.GetColoredPieceBB(Color::kBlack, Piece::kKing))), occ);
+
+    const int phase = std::clamp(board.GetCurStatus().phase_num, 0, kMaxPhase);
+    int score = ((acc.mg * phase) + (acc.eg * (kMaxPhase - phase))) / kMaxPhase;
+
+    // Trade-down: the side ahead in material gains more from each piece leaving the board.
+
+
+    const int advantage = white_material - black_material;
+    if (advantage != 0)
     {
-        Column cur_col = GetSquareCol(white_ksqr);
-        Row infront_row = static_cast<Row>(static_cast<int>(GetSquareRow(white_ksqr)) + 1);
-
-        Bitboard pawn_wall = (((kNearbyColumns[static_cast<size_t>(cur_col)] | ToBitboard(cur_col))) & ToBitboard(infront_row)) & white_pawns;
-
-        if (BitCount(pawn_wall) == 3) { score += kPawnShieldBonus; };
+        const int remaining = white_material + black_material;
+        const int traded = std::clamp(kStartNonPawnMaterial - remaining, 0, kStartNonPawnMaterial);
+        score += (advantage * kTradeDownBonus * traded) / (kStartNonPawnMaterial * 100);
     }
 
-
-    Square black_ksqr = GetLsb(board.GetColoredPieceBB(Color::kBlack, Piece::kKing));
-    score -= pos_table[static_cast<size_t>(black_ksqr)];
-
-    if (!is_endgame)
-    {
-        Column cur_col = GetSquareCol(black_ksqr);
-        Row infront_row = static_cast<Row>(static_cast<int>(GetSquareRow(black_ksqr)) - 1);
-
-        Bitboard pawn_wall = (((kNearbyColumns[static_cast<size_t>(cur_col)] | ToBitboard(cur_col))) & ToBitboard(infront_row)) & black_pawns;
-
-        if (BitCount(pawn_wall) == 3) { score -= kPawnShieldBonus; };
-    }
-
-    return score;
+    return static_cast<Score>(score);
 }
-
 
 }  // namespace
 
@@ -124,18 +160,11 @@ inline Score EvaluateKings(const Board& board, std::array<Score, kSquareCount> p
 namespace evaluation
 {
 
-Score Evaluate(const Board& board)
+Score Evaluate(Board& board)
 {
     Score score = 0;
-
-    bool is_endgame = BitCount(board.GetColorBB(Color::kAll)) <= 16;
-    
-    score += EvaluatePiece<Piece::kQueen>(board, kQueenPosEval);
-    score += EvaluatePiece<Piece::kRook>(board, kRookPosEval);
-    score += EvaluatePiece<Piece::kBishop>(board, kBishopPosEval);
-    score += EvaluatePiece<Piece::kKnight>(board, kKnightPosEval);
-    score += EvaluatePawns(board, is_endgame ? kPawnLatePosEval : kPawnPosEval);
-    score += EvaluateKings(board, is_endgame ? kKingLatePosEval : kKingPosEval, is_endgame);
+    score += EvaluateMaterial(board);
+        
     
     return score;
 }

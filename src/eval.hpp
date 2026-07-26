@@ -19,5 +19,5 @@ constexpr std::array<Bitboard, kColumnCount> kNearbyColumns =
 
 namespace evaluation
 {
-    Score Evaluate(const Board& board);
+    Score Evaluate(Board& board);
 }

@@ -2,114 +2,35 @@
 
 #include "global.hpp"
 #include "search_globals.hpp"
+#include <cstdint>
 
-constexpr std::array<Score, kSquareCount> kQueenPosEval = 
-{
-0, 0, 5, 5, 5, 5, 0, 0,
-0, 5, 10, 10, 10, 10, 5, 0,
-5, 10, 15, 15, 15, 15, 10, 5,
-5, 10, 15, 20, 20, 15, 10, 5,
-5, 10, 15, 20, 20, 15, 10, 5,
-5, 10, 15, 15, 15, 15, 10, 5,
-0, 5, 10, 10, 10, 10, 5, 0,
-0, 0, 5, 5, 5, 5, 0, 0
-};
+constexpr Score kBishopPairBonus = 30;
+constexpr Score kKnightPairPenalty = -8;
+constexpr Score kRookPairPenalty = -20;
+constexpr Score kTradeDownBonus = 10;
+constexpr Score kNoPawnsPenalty = -40;
 
-constexpr std::array<Score, kSquareCount> kKnightPosEval = 
-{
--20, -10, -5, -5, -5, -5, -10, -20,
--10, 0, 10, 10, 10, 10, 0, -10,
--5, 10, 20, 20, 20, 20, 10, -5,
--5, 10, 20, 25, 25, 20, 10, -5,
--5, 10, 20, 25, 25, 20, 10, -5,
--5, 10, 20, 20, 20, 20, 10, -5,
--10, 0, 10, 10, 10, 10, 0, -10,
--20, -10, -5, -5, -5, -5, -10, -20
-};
+ constexpr int kStartNonPawnMaterial = 6400;
 
-constexpr std::array<Score, kSquareCount> kBishopPosEval = 
-{
--10, 0, 0, 10, 10, 0, 0, -10,
-0, 10, 10, 20, 20, 10, 10, 0,
-0, 10, 20, 20, 20, 20, 10, 0,
-10, 20, 20, 25, 25, 20, 20, 10,
-10, 20, 20, 25, 25, 20, 20, 10,
-0, 10, 20, 20, 20, 20, 10, 0,
-0, 10, 10, 20, 20, 10, 10, 0,
--10, 0, 0, 10, 10, 0, 0, -10
-};
+constexpr Score kNearbyPawnsBonus = 10;
+constexpr Score kPawnShieldBonus = 20;
+constexpr Score kPawnShieldPenality = -10;
 
-constexpr std::array<Score, kSquareCount> kRookPosEval = 
-{
-0, 0, 0, 20, 20, 0, 0, 0,
-15, 15, 15, 25, 25, 15, 15, 15,
-0, 0, 15, 25, 25, 15, 0, 0,
-0, 0, 25, 35, 35, 25, 0, 0,
-0, 0, 25, 35, 35, 25, 0, 0,
-0, 0, 15, 25, 25, 15, 0, 0,
-15, 25, 40, 40, 40, 40, 25, 15,
-0, 0, 15, 15, 15, 15, 0, 0
-};
-
-
-constexpr std::array<Score, kSquareCount> kPawnPosEval = 
-{
-0, 0, 0, 0, 0, 0, 0, 0,
-5, 5, 5, 5, 5, 5, 5, 5,
-10, 10, 30, 40, 40, 30, 10, 10,
-15, 15, 30, 40, 40, 30, 15, 15,
-20, 20, 20, 40, 40, 20, 20, 20,
-25, 25, 25, 25, 25, 25, 25, 25,
-30, 30, 30, 30, 30, 30, 30, 30,
-0, 0, 0, 0, 0, 0, 0, 0 // rank 8 doesnt matter since it is impossible
-};
-
-constexpr std::array<Score, kSquareCount> kPawnLatePosEval = 
-{
-0, 0, 0, 0, 0, 0, 0, 0,
--5, -5, -5, -5, -5, -5, -5, -5,
--10, -10, -10, -10, -10, -10, -10, -10,
-30, 30, 30, 40, 40, 30, 30, 30,
-40, 40, 40, 40, 40, 40, 40, 40,
-50, 50, 50, 50, 50, 50, 50, 50,
-60, 60, 60, 60, 60, 60, 60, 60,
-0, 0, 0, 0, 0, 0, 0, 0 // rank 8 doesnt matter since it is impossible
-};
-
-
-constexpr std::array<Score, 64> kKingPosEval = 
-{
-10, 35, 10,  0,  0, 10, 35, 10,
-0, -5, -5, -5, -5, -5, -5, 0,
-0,  0, -20, -30, -30, -20,  0,  0,
--20, -30, -40, -50, -50, -40, -30, -20,
--30, -40, -50, -60, -60, -50, -40, -30,
--40, -50, -60, -70, -70, -60, -50, -40,
--50, -60, -70, -80, -80, -70, -60, -50,
--60, -70, -80, -90, -90, -80, -70, -60
-};
-
-constexpr std::array<Score, 64> kKingLatePosEval =
-{
--15, -10, -5, -5, -5, -5, -10, -15,
--10, -5, 0, 0, 0, 0, -5, -10,
--5, 0, 10, 10, 10, 10, 0, -5,
--5, 0, 20, 20, 20, 20, 0, -5,
--5, 0, 20, 20, 20, 20, 0, -5,
--5, 0, 10, 10, 10, 10, 0, -5,
--10, -5, 0, 0, 0, 0, -5, -10,
--15, -10, -5, -5, -5, -5, -10, -15
-};
-
-constexpr Score kPawnNeighborBonus = 4;
-constexpr Score kPassedPawnBonus = 20;
-constexpr Score kPawnShieldBonus = 25;
-
-constexpr std::array<Score, kPieceCount> kVisionBonuses = 
+constexpr std::array<Score, kPieceCount> kMG_VisionBonuses = 
 {
     1, // queen
     2, // rook
     4, // bishop
+    4, // knight
+    0, // pawn
+    -2  // king
+};
+
+constexpr std::array<Score, kPieceCount> kEG_VisionBonuses = 
+{
+    2, // queen
+    4, // rook
+    5, // bishop
     4, // knight
     0, // pawn
     0  // king
@@ -124,3 +45,161 @@ constexpr std::array<Score, kPieceCount> kPieceValues =
     100, // pawn
     0    // king
 };
+
+constexpr std::array<Score, kSquareCount> kMG_QueenPST = 
+{
+    -10,  -5,  -5,   0,   0,  -5,  -5, -10,
+     -5,   0,   5,   5,   5,   5,   0,  -5,
+     -5,   5,   5,   5,   5,   5,   5,  -5,
+      0,   5,   5,   8,   8,   5,   5,  -5,
+     -5,   5,   5,   8,   8,   5,   5,  -5,
+     -5,   5,   5,   5,   5,   5,   5,  -5,
+     -5,   0,   5,   5,   5,   5,   0,  -5,
+    -10,  -5,  -5,   0,   0,  -5,  -5, -10
+};
+
+constexpr std::array<Score, kSquareCount> kEG_QueenPST = 
+{
+    -20, -15, -10,  -5,  -5, -10, -15, -20,
+    -15,  -5,   0,   0,   0,   0,  -5, -15,
+    -10,   0,   5,  10,  10,   5,   0, -10,
+     -5,   0,  10,  15,  15,  10,   0,  -5,
+     -5,   0,  10,  15,  15,  10,   0,  -5,
+    -10,   0,   5,  10,  10,   5,   0, -10,
+    -15,  -5,   0,   0,   0,   0,  -5, -15,
+    -20, -15, -10,  -5,  -5, -10, -15, -20
+};
+
+constexpr std::array<Score, kSquareCount> kMG_RookPST = 
+{
+     -5,   0,   5,  10,  10,   5,   0,  -5,
+     -5,   0,   0,   5,   5,   0,   0,  -5,
+     -5,   0,   0,   5,   5,   0,   0,  -5,
+     -5,   0,   0,   5,   5,   0,   0,  -5,
+     -5,   0,   0,   5,   5,   0,   0,  -5,
+     -5,   0,   0,   5,   5,   0,   0,  -5,
+     15,  20,  20,  20,  20,  20,  20,  15,
+      0,   0,   0,   5,   5,   0,   0,   0
+};
+
+constexpr std::array<Score, kSquareCount> kEG_RookPST = 
+{
+     -5,  -3,   0,   0,   0,   0,  -3,  -5,
+      0,   0,   0,   0,   0,   0,   0,   0,
+      0,   0,   0,   0,   0,   0,   0,   0,
+      3,   3,   3,   3,   3,   3,   3,   3,
+      5,   5,   5,   5,   5,   5,   5,   5,
+      8,   8,   8,   8,   8,   8,   8,   8,
+     12,  12,  12,  12,  12,  12,  12,  12,
+      5,   5,   5,   5,   5,   5,   5,   5
+};
+
+constexpr std::array<Score, kSquareCount> kMG_BishopPST = 
+{
+    -15,  -5, -10,  -5,  -5, -10,  -5, -15,
+     -5,  10,   5,   5,   5,   5,  10,  -5,
+     -5,   8,  10,  10,  10,  10,   8,  -5,
+     -5,   5,  10,  15,  15,  10,   5,  -5,
+     -5,   5,  10,  15,  15,  10,   5,  -5,
+     -5,   8,  10,  10,  10,  10,   8,  -5,
+     -5,  10,   5,   5,   5,   5,  10,  -5,
+    -15,  -5, -10,  -5,  -5, -10,  -5, -15
+};
+
+constexpr std::array<Score, kSquareCount> kEG_BishopPST = 
+{
+    -15, -10,  -8,  -5,  -5,  -8, -10, -15,
+    -10,   0,   0,   3,   3,   0,   0, -10,
+     -8,   0,   5,   8,   8,   5,   0,  -8,
+     -5,   3,   8,  10,  10,   8,   3,  -5,
+     -5,   3,   8,  10,  10,   8,   3,  -5,
+     -8,   0,   5,   8,   8,   5,   0,  -8,
+    -10,   0,   0,   3,   3,   0,   0, -10,
+    -15, -10,  -8,  -5,  -5,  -8, -10, -15
+};
+
+constexpr std::array<Score, kSquareCount> kMG_KnightPST = 
+{
+    -50, -30, -15, -10, -10, -15, -30, -50,
+    -30, -10,   5,  10,  10,   5, -10, -30,
+    -15,   5,  15,  18,  18,  15,   5, -15,
+    -10,  10,  18,  22,  22,  18,  10, -10,
+    -10,  10,  18,  22,  22,  18,  10, -10,
+    -15,   5,  15,  18,  18,  15,   5, -15,
+    -30, -10,   5,  10,  10,   5, -10, -30,
+    -50, -30, -15, -10, -10, -15, -30, -50
+};
+
+constexpr std::array<Score, kSquareCount> kEG_KnightPST = 
+{
+    -40, -25, -15, -10, -10, -15, -25, -40,
+    -25, -10,   0,   5,   5,   0, -10, -25,
+    -15,   0,   8,  12,  12,   8,   0, -15,
+    -10,   5,  12,  15,  15,  12,   5, -10,
+    -10,   5,  12,  15,  15,  12,   5, -10,
+    -15,   0,   8,  12,  12,   8,   0, -15,
+    -25, -10,   0,   5,   5,   0, -10, -25,
+    -40, -25, -15, -10, -10, -15, -25, -40
+};
+
+
+constexpr std::array<Score, kSquareCount> kMG_PawnPST = 
+{
+      0,   0,   0,   0,   0,   0,   0,   0,
+     20,  30,  15,  20,  15,  30,  25,  -5,
+      0,   0,   7,   5,  10,  10,  10, -10,
+     -5,   0,   1,   5,   8,   2,  15, -20,
+    -10,   0,   0,   5,   6,   0,  20, -15,
+    -10,   0,   0,   0,   0,   0,  25,  -5,
+    -15,   0,  -5,  -5,  -5,  -5,   5,  -5,
+      0,   0,   0,   0,   0,   0,   0,   0 
+};
+constexpr std::array<Score, kSquareCount> kEG_PawnPST = 
+{
+      0,   0,   0,   0,   0,   0,   0,   0,
+      0,   0,   0,   0,   0,   0,   0,   0,
+     10,  10,  10,  10,  10,  10,  10,  10,
+     20,  20,  20,  22,  22,  20,  20,  20,
+     35,  35,  38,  40,  40,  38,  35,  35,
+     60,  60,  62,  65,  65,  62,  60,  60,
+     90,  90,  90,  90,  90,  90,  90,  90,
+      0,   0,   0,   0,   0,   0,   0,   0
+};
+
+constexpr std::array<Score, kSquareCount> kMG_KingPST = 
+{
+     20,  30,  10, -10, -10,   0,  30,  20,
+     10,  10, -10, -20, -20, -10,  10,  10,
+    -20, -25, -30, -35, -35, -30, -25, -20,
+    -30, -35, -40, -45, -45, -40, -35, -30,
+    -40, -45, -50, -55, -55, -50, -45, -40,
+    -45, -50, -55, -60, -60, -55, -50, -45,
+    -50, -55, -60, -60, -60, -60, -55, -50,
+    -50, -55, -60, -60, -60, -60, -55, -50
+};
+
+constexpr std::array<Score, kSquareCount> kEG_KingPST =
+{
+    -40, -25, -15, -10, -10, -15, -25, -40,
+    -25, -10,   0,   5,   5,   0, -10, -25,
+    -15,   0,  15,  20,  20,  15,   0, -15,
+    -10,   5,  20,  25,  25,  20,   5, -10,
+    -10,   5,  20,  25,  25,  20,   5, -10,
+    -15,   0,  15,  20,  20,  15,   0, -15,
+    -25, -10,   0,   5,   5,   0, -10, -25,
+    -40, -25, -15, -10, -10, -15, -25, -40
+};
+
+enum class Phase : uint8_t { kMg, kEg };
+
+constexpr std::array<std::array<std::array<Score, kSquareCount>, kPieceCount>, 2> kPSTs
+{{
+    { kMG_QueenPST, kMG_RookPST, kMG_BishopPST, kMG_KnightPST, kMG_PawnPST, kMG_KingPST },
+    { kEG_QueenPST, kEG_RookPST, kEG_BishopPST, kEG_KnightPST, kEG_PawnPST, kEG_KingPST }
+}};
+
+template <Piece piece, Phase phase>
+inline Score GetPSTScore(Square sqr)
+{
+    return kPSTs[static_cast<size_t>(phase)][static_cast<size_t>(piece)][static_cast<size_t>(sqr)];
+}

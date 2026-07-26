@@ -5,6 +5,7 @@
 
 namespace
 {
+
 constexpr std::array<std::array<Bitboard, kSquareCount>, kColorCount> GeneratePawnAttacks()
 {
     constexpr int kNWShift = 7;

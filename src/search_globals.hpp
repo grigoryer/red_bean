@@ -12,12 +12,12 @@ constexpr Score kNegInf = -kPosInf;
 
 constexpr Score kMateScore = kNegInf + 1000;
 constexpr Score kMateThreshold = kMateScore + 400;
-constexpr Score kDrawScore = -700;
+constexpr Score kDrawScore = -50;
 
 constexpr int kMaxPly = 64;
 
 constexpr size_t kMaxSearchDepth{kMaxPly};
-constexpr size_t kTTableSize = 1 << 21;
+constexpr size_t kTTableSize = 1 << 20;
 constexpr size_t kTBucketSize = 1 << 2;
 
 constexpr uint8_t kQuesDepth = 5;
