@@ -1,3 +1,4 @@
+#include "attacks.hpp"
 #include "debug.hpp"
 #include "board.hpp"
 #include "eval.hpp"
@@ -22,7 +23,7 @@ auto TestSearchSpeed(Board board, Search& searcher)
     PrintPieceBoard(board);
     PrintStatus(board.GetCurStatus());
     auto start = std::chrono::high_resolution_clock::now();
-    Move move = searcher.FindBestMove(10);
+    Move move = searcher.FindBestMove(6);
     auto end = std::chrono::high_resolution_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
@@ -40,11 +41,13 @@ int main()
 {    
     UCI engine{};
     engine.Loop();
-    
+
     // std::atomic<bool> flag;
     // Board board{kPerft2};
     // Search searcher{board, flag};
     // TestSearchSpeed(board, searcher);
+
+    // PrintPieceBoard(board);
 
     // while(std::cin.get())
     // {

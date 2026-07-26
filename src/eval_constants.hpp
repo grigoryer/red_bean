@@ -10,11 +10,11 @@ constexpr Score kRookPairPenalty = -20;
 constexpr Score kTradeDownBonus = 10;
 constexpr Score kNoPawnsPenalty = -40;
 
-constexpr int kStartNonPawnMaterial = 6400;
+ constexpr int kStartNonPawnMaterial = 6400;
 
-//constexpr Score kNearbyPawnsBonus = 10;
+constexpr Score kNearbyPawnsBonus = 10;
 constexpr Score kPawnShieldBonus = 20;
-constexpr Score kPawnShieldPenality = -7;
+constexpr Score kPawnShieldPenality = -10;
 
 constexpr std::array<Score, kPieceCount> kMG_VisionBonuses = 
 {
@@ -23,7 +23,7 @@ constexpr std::array<Score, kPieceCount> kMG_VisionBonuses =
     4, // bishop
     4, // knight
     0, // pawn
-    -1  // king
+    -2  // king
 };
 
 constexpr std::array<Score, kPieceCount> kEG_VisionBonuses = 

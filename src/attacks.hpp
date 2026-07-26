@@ -16,7 +16,7 @@ Bitboard GetRookAttack(Bitboard occ, Square sqr);
 Bitboard GetQueenAttack(Bitboard occ, Square sqr);
 
 template<Piece piece>
-Bitboard getPieceAttack(Bitboard occ, Square sqr, Color color)
+inline Bitboard getPieceAttack(Bitboard occ, Square sqr, Color color)
 {
     if constexpr (piece == Piece::kKing)
     {
@@ -47,15 +47,20 @@ Bitboard getPieceAttack(Bitboard occ, Square sqr, Color color)
     std::terminate();
 }
 
-
-inline Bitboard GetPawnAttacks(const Board& board, Color color)
+template<Color color>
+inline Bitboard GetPawnAttacks(const Board& board)
 {
     Bitboard pawn_attacks{};
+
     Bitboard pawns = board.GetColoredPieceBB(color, Piece::kPawn);
 
-    while (pawns) 
+    if constexpr (color == Color::kWhite)
     {
-        pawn_attacks |= GetPawnAttack(color, PopLsb(pawns));
+        pawn_attacks = ((pawns & ~ToBitboard(Column::A)) << 7) | ((pawns & ~ToBitboard(Column::H)) << 9);
+    }
+    else if constexpr (color == Color::kBlack)
+    {
+        pawn_attacks = ((pawns & ~ToBitboard(Column::A)) >> 9) | ((pawns & ~ToBitboard(Column::H)) >> 7);
     }
 
     return pawn_attacks;

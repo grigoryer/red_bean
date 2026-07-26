@@ -120,7 +120,7 @@ inline void GeneratePawnNoisy(Board& board, MoveList& move_list, Bitboard target
 }
 
 template<GenType gen_type, Color color>
-void GeneratePawnMoves(Board& board, MoveList& move_list, Bitboard target)
+inline void GeneratePawnMoves(Board& board, MoveList& move_list, Bitboard target)
 {
     if constexpr (gen_type == GenType::kNoisy || gen_type == GenType::kAll)
     {
@@ -134,7 +134,7 @@ void GeneratePawnMoves(Board& board, MoveList& move_list, Bitboard target)
 }
 
 template<Piece piece, GenType gen_type>
-void GenerateForPiece(Board& board, MoveList& move_list, Bitboard occ, Color ally_color, Color enemy_color, Bitboard target) //NOLINT
+inline void GenerateForPiece(Board& board, MoveList& move_list, Bitboard occ, Color ally_color, Color enemy_color, Bitboard target) //NOLINT
 {
     Bitboard piece_spots = board.GetColoredPieceBB(ally_color, piece);
     while (piece_spots != 0)
@@ -164,7 +164,7 @@ void GenerateForPiece(Board& board, MoveList& move_list, Bitboard occ, Color all
 }
 
 template<GenType gen_type>
-void GenerateMajorPieceMoves(Board& board, MoveList& move_list, Bitboard target)
+inline void GenerateMajorPieceMoves(Board& board, MoveList& move_list, Bitboard target)
 {
     Color ally_color = board.GetCurStatus().cur_color_;
     Color enemy_color = GetEnemyColor(ally_color);
@@ -214,7 +214,7 @@ inline void GenerateCastling(Board& board, MoveList& move_list)
 }
 
 template<GenType gen_type>
-void GenerateKingMoves(Board& board, MoveList& move_list, size_t checker_count)
+inline void GenerateKingMoves(Board& board, MoveList& move_list, size_t checker_count)
 {
     Color ally_color = board.GetCurStatus().cur_color_;
     Color enemy_color = GetEnemyColor(ally_color);

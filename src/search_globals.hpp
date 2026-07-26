@@ -17,10 +17,11 @@ constexpr Score kDrawScore = -50;
 constexpr int kMaxPly = 64;
 
 constexpr size_t kMaxSearchDepth{kMaxPly};
-constexpr size_t kTTableSize = 1 << 20;
+constexpr size_t kTTableSize = 1 << 21;
 constexpr size_t kTBucketSize = 1 << 2;
 
 constexpr uint8_t kQuesDepth = 5;
+
 constexpr MoveScore kHistoryCeiling = 1500;
 constexpr MoveScore kHistoryMax = 1 << 14;
 
@@ -43,6 +44,8 @@ constexpr MoveScore kRefutationMoveBoost = 10000;
 
 constexpr MoveScore kKiller1Boost = 2000;
 constexpr MoveScore kKiller2Boost = 1900;
+
+constexpr Score kDeltaPrunningMargin = 200;
 
 // [attacker][victim]
 constexpr std::array<std::array<MoveScore, kPieceCount + 1>, kPieceCount> kMoveOrderingTable

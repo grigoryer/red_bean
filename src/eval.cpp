@@ -119,8 +119,8 @@ inline Score EvaluateMaterial(Board& board)
     Bitboard white_pawns = board.GetColoredPieceBB(Color::kWhite, Piece::kPawn);
     Bitboard black_pawns = board.GetColoredPieceBB(Color::kBlack, Piece::kPawn);
 
-    Bitboard white_pawn_attacks = attacks::GetPawnAttacks(board, Color::kWhite);
-    Bitboard black_pawn_attacks = attacks::GetPawnAttacks(board, Color::kBlack);
+    Bitboard white_pawn_attacks = attacks::GetPawnAttacks<Color::kWhite>(board);
+    Bitboard black_pawn_attacks = attacks::GetPawnAttacks<Color::kBlack>(board);
 
     EvaluateMaterialPiece<Color::kWhite, Piece::kQueen>(board, acc, white_material, occ, black_pawn_attacks);
     EvaluateMaterialPiece<Color::kWhite, Piece::kRook>(board, acc, white_material, occ, black_pawn_attacks);

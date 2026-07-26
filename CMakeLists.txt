@@ -14,4 +14,4 @@ file(GLOB SOURCES "src/*")
 
 add_executable(red_bean ${SOURCES})
 
-target_compile_options(red_bean PRIVATE -march=native -fconstexpr-steps=100000000 -std=c++17 -O2) #  -O3 -flto  -fconstexpr-steps=100000000 
+target_compile_options(red_bean PRIVATE -march=native -fconstexpr-steps=100000000 -std=c++17 -O3 -flto) # -O3 -flto -fno-omit-frame-pointer  -fconstexpr-steps=100000000 

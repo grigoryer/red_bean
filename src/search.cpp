@@ -1,5 +1,6 @@
 #include "search.hpp"
 #include "board.hpp"
+#include "eval_constants.hpp"
 #include "global.hpp"
 #include "move.hpp"
 #include "move_generation.hpp"
@@ -12,8 +13,6 @@
 
 Search::Search(Board& board, std::atomic<bool>& stop_flag)
     : board_(board), stop_flag_(stop_flag), ttable_(std::make_unique<TTable>()) { }
-
-
 
 
 void Search::UpdatePv(uint8_t ply, ExtMove move)
@@ -84,53 +83,6 @@ void PickNextMove(MoveList& current_moves, size_t cur_index)
 }
 
 
-Score Search::QuesSearch(Score alpha, Score beta, uint8_t depth)
-{
-    // check for draw 50 moves or 3 fold and return 0.
-    if (board_.IsDraw()) { return kDrawScore; }
-
-    Score standing_pat = (evaluation::Evaluate(board_) * (board_.GetCurStatus().cur_color_ == Color::kBlack ? -1 : 1));
-
-    if (standing_pat >= beta || depth == 0 || stop_flag_)
-    {
-        return standing_pat;
-    }
-
-    alpha = std::max(standing_pat, alpha);
-    Score best_score = standing_pat;
-
-    MoveList noisy_moves;
-    between::SetCheckersAndBlockers(board_, board_.GetCurStatus());
-    generation::legal::GenerateMoves<GenType::kNoisy>(board_, noisy_moves);
-    auto& status = board_.GetCurStatus();
-
-    for (size_t i{}; i < noisy_moves.move_count; ++i)
-    {
-        PickNextMove(noisy_moves, i);
-        ExtMove move = noisy_moves.list[i];
-       
-        bool legal = generation::legal::IsGeneratedMoveLegal(board_, status, move, status.blocking_squares_, status.cur_color_, GetEnemyColor(status.cur_color_));
-        if (!legal) { continue; }
-        
-        nodes_searched++;
-
-        
-        moving::MakeMove(board_, move);
-        Score score = -QuesSearch(-beta, -alpha, depth - 1);
-        moving::UndoMove(board_, move);
-
-        if (score >= beta)
-        {
-            return score; 
-        }
-        alpha = std::max(score, alpha);
-        best_score = std::max(score, best_score);
-    }
-    return best_score;
-}
-
-
-
 // the three TT bound checks. True => caller returns `out`.
 bool Search::ProbeTTCutoff(const TEntry& entry, Score alpha, Score beta, uint8_t depth, Score& out) const
 {
@@ -157,7 +109,7 @@ bool Search::SearchTTMove(ExtMove tt_move, Score& alpha, Score beta, uint8_t dep
 
     moving::MakeMove(board_, tt_move);
     Score tt_move_score = -NegaMax(-beta, -alpha, depth - 1, ply + 1);
-    
+
     moving::UndoMove(board_, tt_move);
 
     // current score exceeded the acceptable threshhold of the opposing player, so no need to search rest of branch.
@@ -178,6 +130,74 @@ bool Search::SearchTTMove(ExtMove tt_move, Score& alpha, Score beta, uint8_t dep
     }
     return false;
 }
+
+
+Score Search::QuesSearch(Score alpha, Score beta, uint8_t depth)
+{
+    // check for draw 50 moves or 3 fold and return 0.
+    if (board_.IsDraw()) { return kDrawScore; }
+
+    Score standing_pat = (evaluation::Evaluate(board_) * (board_.GetCurStatus().cur_color_ == Color::kBlack ? -1 : 1));
+
+    // return standing pat if it is pruined by beta, max depth is reached or stop flag.
+    if (standing_pat >= beta || depth == 0 || stop_flag_)
+    {
+        return standing_pat;
+    }
+    
+    auto& status = board_.GetCurStatus();
+
+    // Delta pruning check the captured piece and if it is not worth it () skip. Turn of in end game.
+    if (status.phase_num > 14)
+    {
+        Score big_delta = kPieceValues[static_cast<size_t>(Piece::kQueen)];
+        
+        if ((board_.GetColoredPieceBB(status.cur_color_, Piece::kPawn) & ToBitboard((status.cur_color_ == Color::kWhite) ? Row::_7 : Row::_2)) != 0)
+        {
+            big_delta += 700;
+        }
+
+        if (standing_pat < alpha - big_delta)
+        {
+            return standing_pat;
+        }
+    }
+
+
+    alpha = std::max(standing_pat, alpha);
+    Score best_score = standing_pat;
+
+    between::SetCheckersAndBlockers(board_, board_.GetCurStatus());
+
+    MoveList noisy_moves;
+    generation::legal::GenerateMoves<GenType::kNoisy>(board_, noisy_moves);
+
+    for (size_t i{}; i < noisy_moves.move_count; ++i)
+    {
+        PickNextMove(noisy_moves, i);
+        ExtMove move = noisy_moves.list[i];
+
+        bool legal = generation::legal::IsGeneratedMoveLegal(board_, status, move, status.blocking_squares_, status.cur_color_, GetEnemyColor(status.cur_color_));
+        if (!legal) { continue; }
+
+        nodes_searched++;
+
+        moving::MakeMove(board_, move);
+        Score score = -QuesSearch(-beta, -alpha, depth - 1);
+        moving::UndoMove(board_, move);
+
+        if (score >= beta)
+        {
+            return score; 
+        }
+
+        alpha = std::max(score, alpha);
+        best_score = std::max(score, best_score);
+
+    }
+    return best_score;
+}
+
 
 
 void Search::UpdateQuietHeuristics(ExtMove move, uint8_t depth, uint8_t ply)
