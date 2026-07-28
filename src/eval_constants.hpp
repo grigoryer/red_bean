@@ -18,8 +18,9 @@ constexpr Score kNearbyPawnsBonus = 10;
 
 // Per pawn on x rows in front it. So [0] = current row and is skipped, [1] = one row in front
 constexpr int kPawnShieldRowsInfront{3}; 
+constexpr std::array<Score, kPawnShieldRowsInfront> kPawnShieldBonus = {0, 7, 3};
+
 constexpr int kPawnStormRowsInfront{5};
-constexpr std::array<Score, kPawnShieldRowsInfront> kPawnShieldBonus = {0, 8, 4};
 constexpr std::array<Score, kPawnStormRowsInfront> kPawnStormPenalty = {0, -3, -3, -2, -1};
 constexpr Score kPawnShieldPenality = -10;
 
