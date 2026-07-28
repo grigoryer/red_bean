@@ -74,7 +74,7 @@ inline void EvaluateMaterialPiece(const Board& board, EvalPair& acc, int& non_pa
 
 
 template<Color color>
-inline void KingSafety(Board& board, Bitboard ally_pawns, EvalPair& acc, Square ksqr, Bitboard occ)
+inline void KingSafety(Board& board, Bitboard ally_pawns, EvalPair& acc, Square ksqr, Bitboard occ, Bitboard enemy_pawns)
 {
     constexpr int kSign = (color == Color::kBlack) ? -1 : 1;
     
@@ -82,7 +82,7 @@ inline void KingSafety(Board& board, Bitboard ally_pawns, EvalPair& acc, Square 
     Square pst_sqr = ksqr;
     if constexpr (color == Color::kBlack) { pst_sqr = static_cast<Square>(static_cast<int>(ksqr) ^ 56); }
     
-    // How visible a king is.
+    // How visible a king is, negative score so that we promote it to hide
     acc.mg += kSign * BitCount(attacks::GetQueenAttack(occ, ksqr) & ~board.GetColorBB(color))
         * kMG_VisionBonuses[static_cast<size_t>(Piece::kKing)];
 
@@ -91,22 +91,32 @@ inline void KingSafety(Board& board, Bitboard ally_pawns, EvalPair& acc, Square 
     acc.eg += kSign * GetPSTScore<Piece::kKing, Phase::kEg>(pst_sqr);
 
     // Pawn shield
-    constexpr int kDir = (color == Color::kBlack) ? -1 : 1;
-    const int row = static_cast<int>(GetSquareRow(ksqr)) + kDir;
-    
-    if (row < static_cast<int>(Row::_2) || row > static_cast<int>(Row::_7))
+    const int row = static_cast<int>(GetSquareRow(ksqr));
+    int shield_count = 0;
+    auto col_index = static_cast<size_t>(GetSquareCol(ksqr));
+    Bitboard cols_infront = kPawnShieldColumns[col_index];
+
+    // check the rows in front of king
+    for (int i{1}; i < kPawnShieldRowsInfront; ++i)
     {
-        acc.mg += kSign * kPawnShieldPenality;
-        return;
+        const int shield_idx = row + (i * kSign);
+        // Safety check for king. If row will exceed the bounds of board then break.
+        if (shield_idx < 0 || shield_idx > 7) { break; }
+
+        const Row row_infront = static_cast<Row>(shield_idx);
+
+        // if king is too far up dont apply.
+        if constexpr (color == Color::kBlack) {  if ( row_infront < Row::_5) { break; } } 
+        if constexpr (color == Color::kWhite) {  if ( row_infront > Row::_4) { break; } }
+
+        Bitboard row_infront_bb = cols_infront & ToBitboard(row_infront);
+
+        // Pawn Shield compute the 3 squares in front on corresponding row and count amount of square blockers.
+        int sheild_level_count = BitCount(ally_pawns & row_infront_bb);
+        shield_count += sheild_level_count;
+        acc.mg += kSign * (kPawnShieldBonus[i] * sheild_level_count);
     }
-
-    const Row row_infront = static_cast<Row>(row);
-
-    Column col = std::clamp(GetSquareCol(ksqr), Column::B, Column::G);
-    ally_pawns &= ((kNearbyColumns[static_cast<size_t>(col)] | ToBitboard(col)) & ToBitboard(row_infront));
-
-    if (BitCount(ally_pawns) >= 3) { acc.mg += kSign * kPawnShieldBonus; }
-    else { acc.mg += kSign * kPawnShieldPenality; }
+    if (shield_count == 0) { acc.mg += kSign * kPawnShieldPenality; }
 }
 
 inline Score EvaluateMaterial(Board& board)
@@ -134,15 +144,13 @@ inline Score EvaluateMaterial(Board& board)
     EvaluateMaterialPiece<Color::kBlack, Piece::kKnight>(board, acc, black_material, occ, white_pawn_attacks);
     EvaluateMaterialPiece<Color::kBlack, Piece::kPawn>(board, acc, black_material, occ, white_pawn_attacks);
 
-    KingSafety<Color::kWhite>(board, white_pawns, acc, (GetLsb(board.GetColoredPieceBB(Color::kWhite, Piece::kKing))), occ);
-    KingSafety<Color::kBlack>(board, black_pawns, acc, (GetLsb(board.GetColoredPieceBB(Color::kBlack, Piece::kKing))), occ);
+    KingSafety<Color::kWhite>(board, white_pawns, acc, (GetLsb(board.GetColoredPieceBB(Color::kWhite, Piece::kKing))), occ, black_pawns);
+    KingSafety<Color::kBlack>(board, black_pawns, acc, (GetLsb(board.GetColoredPieceBB(Color::kBlack, Piece::kKing))), occ, white_pawns);
 
     const int phase = std::clamp(board.GetCurStatus().phase_num, 0, kMaxPhase);
     int score = ((acc.mg * phase) + (acc.eg * (kMaxPhase - phase))) / kMaxPhase;
 
     // Trade-down: the side ahead in material gains more from each piece leaving the board.
-
-
     const int advantage = white_material - black_material;
     if (advantage != 0)
     {

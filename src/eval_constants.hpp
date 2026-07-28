@@ -13,7 +13,14 @@ constexpr Score kNoPawnsPenalty = -40;
  constexpr int kStartNonPawnMaterial = 6400;
 
 constexpr Score kNearbyPawnsBonus = 10;
-constexpr Score kPawnShieldBonus = 20;
+
+
+
+// Per pawn on x rows in front it. So [0] = current row and is skipped, [1] = one row in front
+constexpr int kPawnShieldRowsInfront{3}; 
+constexpr int kPawnStormRowsInfront{5};
+constexpr std::array<Score, kPawnShieldRowsInfront> kPawnShieldBonus = {0, 8, 4};
+constexpr std::array<Score, kPawnStormRowsInfront> kPawnStormPenalty = {0, -3, -3, -2, -1};
 constexpr Score kPawnShieldPenality = -10;
 
 constexpr std::array<Score, kPieceCount> kMG_VisionBonuses = 
@@ -23,7 +30,7 @@ constexpr std::array<Score, kPieceCount> kMG_VisionBonuses =
     4, // bishop
     4, // knight
     0, // pawn
-    -2  // king
+    -1  // king
 };
 
 constexpr std::array<Score, kPieceCount> kEG_VisionBonuses = 
@@ -203,3 +210,30 @@ inline Score GetPSTScore(Square sqr)
 {
     return kPSTs[static_cast<size_t>(phase)][static_cast<size_t>(piece)][static_cast<size_t>(sqr)];
 }
+
+
+constexpr std::array<Bitboard, kColumnCount> kNearbyColumns = 
+{
+    kColumnsBitboards[static_cast<size_t>(Column::B)],
+    kColumnsBitboards[static_cast<size_t>(Column::A)] | kColumnsBitboards[static_cast<size_t>(Column::C)],
+    kColumnsBitboards[static_cast<size_t>(Column::B)] | kColumnsBitboards[static_cast<size_t>(Column::D)],
+    kColumnsBitboards[static_cast<size_t>(Column::C)] | kColumnsBitboards[static_cast<size_t>(Column::E)],  
+    kColumnsBitboards[static_cast<size_t>(Column::D)] | kColumnsBitboards[static_cast<size_t>(Column::F)],
+    kColumnsBitboards[static_cast<size_t>(Column::E)] | kColumnsBitboards[static_cast<size_t>(Column::G)],
+    kColumnsBitboards[static_cast<size_t>(Column::F)] | kColumnsBitboards[static_cast<size_t>(Column::H)],
+    kColumnsBitboards[static_cast<size_t>(Column::G)]
+};
+
+
+// Column A = [0] to H.
+constexpr std::array<Bitboard, kColumnCount> kPawnShieldColumns = 
+{
+    kColumnsBitboards[static_cast<size_t>(Column::B)] | kColumnsBitboards[static_cast<size_t>(Column::A)] ,
+    kColumnsBitboards[static_cast<size_t>(Column::A)] | kColumnsBitboards[static_cast<size_t>(Column::B)] | kColumnsBitboards[static_cast<size_t>(Column::C)],
+    kColumnsBitboards[static_cast<size_t>(Column::B)] | kColumnsBitboards[static_cast<size_t>(Column::C)] | kColumnsBitboards[static_cast<size_t>(Column::D)],
+    kColumnsBitboards[static_cast<size_t>(Column::C)] | kColumnsBitboards[static_cast<size_t>(Column::D)] | kColumnsBitboards[static_cast<size_t>(Column::E)],  
+    kColumnsBitboards[static_cast<size_t>(Column::D)] | kColumnsBitboards[static_cast<size_t>(Column::E)] | kColumnsBitboards[static_cast<size_t>(Column::F)],
+    kColumnsBitboards[static_cast<size_t>(Column::E)] | kColumnsBitboards[static_cast<size_t>(Column::F)] | kColumnsBitboards[static_cast<size_t>(Column::G)],
+    kColumnsBitboards[static_cast<size_t>(Column::F)] | kColumnsBitboards[static_cast<size_t>(Column::G)] | kColumnsBitboards[static_cast<size_t>(Column::H)],
+    kColumnsBitboards[static_cast<size_t>(Column::G)] | kColumnsBitboards[static_cast<size_t>(Column::H)]
+};
