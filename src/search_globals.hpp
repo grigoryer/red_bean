@@ -7,28 +7,19 @@
 using Score = int16_t;
 using MoveScore = uint16_t;
 
+//Main Alpha Beta
 constexpr Score kPosInf = std::numeric_limits<Score>::max() - 3000;
 constexpr Score kNegInf = -kPosInf;
-
 constexpr Score kMateScore = kNegInf + 1000;
-constexpr Score kMateThreshold = kMateScore + 400;
 constexpr Score kDrawScore = -50;
 
+// Depth and Iterative Deepening
 constexpr int kMaxPly = 64;
-
 constexpr size_t kMaxSearchDepth{kMaxPly};
-constexpr size_t kTTableSize = 1 << 21;
+
+// Transposition table
+constexpr size_t kTTableSize = 1 << 23; // switch to 23 for lichess.
 constexpr size_t kTBucketSize = 1 << 2;
-
-constexpr uint8_t kQuesDepth = 5;
-
-constexpr MoveScore kHistoryCeiling = 1500;
-constexpr MoveScore kHistoryMax = 1 << 14;
-
-static_assert(kHistoryMax + (kMaxSearchDepth * kMaxSearchDepth)
-              <= std::numeric_limits<MoveScore>::max(),
-              "history entry can overflow between aging passes");
-
 enum class NodeType : uint8_t
 {
     EXACT,
@@ -36,16 +27,26 @@ enum class NodeType : uint8_t
     LOWER
 };
 
-constexpr std::array<Score, kPieceCount> kScorePieceWorth { 900, 500, 300, 300, 100, 0 };
-constexpr std::array<MoveScore, kPieceCount> kPieceWorth { 900, 500, 300, 300, 100, 0 };
+// Quesience Search
+constexpr uint8_t kQuesDepth = 7;
 
+// History Heuristics
+constexpr MoveScore kHistoryCeiling = 1500;
+constexpr MoveScore kHistoryMax = 1 << 14;
+static_assert(kHistoryMax + (kMaxSearchDepth * kMaxSearchDepth)
+              <= std::numeric_limits<MoveScore>::max(),
+              "history entry can overflow between aging passes");
+
+// Late Move Ordering
+constexpr double kLMR_Base = 0.75;
+constexpr double kLMR_Divisor = 2.25;
+
+// Move ordering bonuses.
+constexpr std::array<MoveScore, kPieceCount> kPieceWorth { 900, 500, 300, 300, 100, 0 };
 constexpr MoveScore kCastleBoost = 900; // after all types of captures.
 constexpr MoveScore kRefutationMoveBoost = 10000;
-
 constexpr MoveScore kKiller1Boost = 2000;
 constexpr MoveScore kKiller2Boost = 1900;
-
-constexpr Score kDeltaPrunningMargin = 200;
 
 // [attacker][victim]
 constexpr std::array<std::array<MoveScore, kPieceCount + 1>, kPieceCount> kMoveOrderingTable

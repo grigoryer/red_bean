@@ -165,9 +165,59 @@ Optimizations, killer moves and history heursitcs. ALSO A MUCH HARDER EVAL.
     Notes 80% less nodes but still more time due to eval update which is more complex. (King safety, mobility, bonuses for pairing).
 
 
+
 Age depth preffered Strategy for TT replacement
 
     info depth 6 score cp 37 nodes 322269 pv e2a6 e6d5 c3d5 f6d5 e4d5 g7e5
 
     Nodes: 322269
     Time: 668ms
+
+
+
+PVS
+
+    info depth 1 score cp 71 nodes 385 pv e2a6
+    info depth 2 score cp 141 nodes 1171 pv e2a6 b4c3
+    info depth 3 score cp 34 nodes 3983 pv e2a6 b4c3 f3c3
+    info depth 4 score cp 119 nodes 15095 pv e2a6 b4c3 d2c3 e6d5
+    info depth 5 score cp 21 nodes 72540 pv e2a6 b4c3 d2c3 e6d5 e4d5
+    info depth 6 score cp 34 nodes 216927 pv e2a6 e6d5 a6b7 h3g2 f3g2 b4c3
+
+    Nodes: 216927
+    Time: 729ms
+
+LMR
+    info depth 1 score cp 67 nodes 383 pv e2a6
+    info depth 2 score cp 132 nodes 1197 pv e2a6 b4c3
+    info depth 3 score cp 26 nodes 3946 pv e2a6 b4c3 f3c3
+    info depth 4 score cp 126 nodes 14781 pv e2a6 b4c3 d2c3 e6d5
+    info depth 5 score cp 17 nodes 36547 pv e2a6 b4c3 d2c3 e6d5 e4d5
+    info depth 6 score cp 31 nodes 99474 pv e2a6 e6d5 a6b7 h3g2 f3g2 b4c3
+
+    Nodes: 99474
+    Time: 315ms
+
+
+LMR better ratio
+
+    info depth 1 score cp 67 nodes 466 pv e2a6
+    info depth 2 score cp 126 nodes 1801 pv e2a6 b4c3
+    info depth 3 score cp 26 nodes 4321 pv e2a6 b4c3 f3c3
+    info depth 4 score cp 82 nodes 16184 pv e2a6 b4c3 d2c3 e6d5
+    info depth 5 score cp 21 nodes 37504 pv e2a6 b4c3 d2c3 e6d5 e4d5
+    info depth 6 score cp 21 nodes 87978 pv e2a6 b4c3 d2c3 e6d5 e4d5 h3g2
+
+    Nodes: 87978
+
+
+Fixed qsearch added check detection and continution. Guard raised to 7.
+
+    info depth 1 score cp 67 nodes 914 pv e2a6
+    info depth 2 score cp 126 nodes 2320 pv e2a6 b4c3
+    info depth 3 score cp 26 nodes 5602 pv e2a6 b4c3 f3c3
+    info depth 4 score cp 84 nodes 20078 pv e2a6 b4c3 d2c3 e6d5
+    info depth 5 score cp 21 nodes 42371 pv e2a6 b4c3 d2c3 e6d5 e4d5
+    info depth 6 score cp 21 nodes 118776 pv e2a6 b4c3 d2c3 e6d5 e4d5 h3g2
+
+    Nodes: 118776

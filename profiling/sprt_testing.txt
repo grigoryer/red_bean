@@ -20,9 +20,6 @@ Finished match
 Total Time: 00:20:54 (hours:minutes:seconds)
 
 
-optmization
-
-
 Age and optimzation vs safety
 --------------------------------------------------
 Results of Age vs Safety (10+0.1, NULL, NULL, opening_book.pgn):
@@ -33,3 +30,36 @@ Ptnml(0-2): [7, 38, 90, 70, 25], WL/DD Ratio: 1.00
 LLR: 2.54 (86.4%) (-2.94, 2.94) [0.00, 10.00]
 --------------------------------------------------
 
+
+PVS vs LMR
+--------------------------------------------------
+Results of LMR vs PVS (10+0.1, NULL, NULL, opening_book.pgn):
+Elo: 113.22 +/- 30.44, nElo: 165.82 +/- 41.44
+LOS: 100.00 %, DrawRatio: 31.11 %, PairsRatio: 4.47
+Games: 270, Wins: 118, Losses: 33, Draws: 119, Points: 177.5 (65.74 %)
+Ptnml(0-2): [0, 17, 42, 50, 26], WL/DD Ratio: 0.62
+LLR: 2.99 (101.6%) (-2.94, 2.94) [0.00, 10.00]
+--------------------------------------------------
+
+
+QSearch Fixes
+--------------------------------------------------
+Results of QSFix vs LMR (10+0.1, NULL, NULL, opening_book.pgn):
+Elo: 24.02 +/- 13.18, nElo: 37.06 +/- 20.26
+LOS: 99.98 %, DrawRatio: 43.01 %, PairsRatio: 1.50
+Games: 1130, Wins: 311, Losses: 233, Draws: 586, Points: 604.0 (53.45 %)
+Ptnml(0-2): [20, 109, 243, 159, 34], WL/DD Ratio: 0.53
+LLR: 2.95 (100.4%) (-2.94, 2.94) [0.00, 10.00]
+--------------------------------------------------
+
+
+Time adjustment. Only do next iteration if time allows it.
+--------------------------------------------------
+Results of TIME vs QSFIX (10+0.1, NULL, NULL, opening_book.pgn):
+Elo: 62.25 +/- 24.52, nElo: 78.97 +/- 30.39
+LOS: 100.00 %, DrawRatio: 33.86 %, PairsRatio: 2.02
+Games: 502, Wins: 199, Losses: 110, Draws: 193, Points: 295.5 (58.86 %)
+Ptnml(0-2): [12, 43, 85, 66, 45], WL/DD Ratio: 1.02
+LLR: 2.95 (100.2%) (-2.94, 2.94) [0.00, 10.00]
+--------------------------------------------------
+SPRT ([0.00, 10.00]) completed - H1 was accepted

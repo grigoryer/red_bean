@@ -4,25 +4,27 @@
 #include "search_globals.hpp"
 #include <cstdint>
 
+enum class Phase : uint8_t { kMg, kEg };
+
 constexpr Score kBishopPairBonus = 30;
 constexpr Score kKnightPairPenalty = -8;
 constexpr Score kRookPairPenalty = -20;
 constexpr Score kTradeDownBonus = 10;
-constexpr Score kNoPawnsPenalty = -40;
+constexpr Score kNoPawnsPenalty = -30;
 
- constexpr int kStartNonPawnMaterial = 6400;
-
-constexpr Score kNearbyPawnsBonus = 10;
-
-
+constexpr int kStartNonPawnMaterial = 6200;
 
 // Per pawn on x rows in front it. So [0] = current row and is skipped, [1] = one row in front
 constexpr int kPawnShieldRowsInfront{3}; 
-constexpr std::array<Score, kPawnShieldRowsInfront> kPawnShieldBonus = {0, 7, 3};
+constexpr std::array<Score, kPawnShieldRowsInfront> kPawnShieldBonus = {0, 5, 2};
 
 constexpr int kPawnStormRowsInfront{5};
-constexpr std::array<Score, kPawnStormRowsInfront> kPawnStormPenalty = {0, -3, -3, -2, -1};
-constexpr Score kPawnShieldPenality = -10;
+constexpr std::array<Score, kPawnStormRowsInfront> kPawnStormPenalty = {0, -2, -2, -1, -1};
+constexpr Score kPawnShieldPenality = -7;
+
+constexpr std::array<Score, 2> kPassedPawnBonus = {20, 50};
+constexpr std::array<Score, 2> kChainPawnBonus = {5, 10};
+constexpr std::array<Score, 2> kPhalanxPawnBonus = {1, 2};
 
 constexpr std::array<Score, kPieceCount> kMG_VisionBonuses = 
 {
@@ -198,7 +200,7 @@ constexpr std::array<Score, kSquareCount> kEG_KingPST =
     -40, -25, -15, -10, -10, -15, -25, -40
 };
 
-enum class Phase : uint8_t { kMg, kEg };
+
 
 constexpr std::array<std::array<std::array<Score, kSquareCount>, kPieceCount>, 2> kPSTs
 {{
@@ -227,7 +229,8 @@ constexpr std::array<Bitboard, kColumnCount> kNearbyColumns =
 
 
 // Column A = [0] to H.
-constexpr std::array<Bitboard, kColumnCount> kPawnShieldColumns = 
+// Nearby Columns plus self.
+constexpr std::array<Bitboard, kColumnCount> kBandColumns = 
 {
     kColumnsBitboards[static_cast<size_t>(Column::B)] | kColumnsBitboards[static_cast<size_t>(Column::A)] ,
     kColumnsBitboards[static_cast<size_t>(Column::A)] | kColumnsBitboards[static_cast<size_t>(Column::B)] | kColumnsBitboards[static_cast<size_t>(Column::C)],

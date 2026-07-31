@@ -94,7 +94,7 @@ inline void KingSafety(Board& board, Bitboard ally_pawns, EvalPair& acc, Square 
     const int row = static_cast<int>(GetSquareRow(ksqr));
     int shield_count = 0;
     auto col_index = static_cast<size_t>(GetSquareCol(ksqr));
-    Bitboard cols_infront = kPawnShieldColumns[col_index];
+    Bitboard cols_infront = kBandColumns[col_index];
 
     // check the rows in front of king
     for (int i{1}; i < kPawnShieldRowsInfront; ++i)
@@ -117,6 +117,39 @@ inline void KingSafety(Board& board, Bitboard ally_pawns, EvalPair& acc, Square 
         acc.mg += kSign * (kPawnShieldBonus[i] * sheild_level_count);
     }
     if (shield_count == 0) { acc.mg += kSign * kPawnShieldPenality; }
+}
+
+
+template<Color color>
+inline void PawnStructure(Bitboard ally_pawns, EvalPair& acc, Bitboard enemy_pawns)
+{
+    constexpr int kSign = (color == Color::kBlack) ? -1 : 1;
+    Bitboard ally_pawns_copy = ally_pawns;
+
+    while (ally_pawns_copy)
+    {
+        Square sqr = PopLsb(ally_pawns_copy);
+        Column col = GetSquareCol(sqr);
+        Row row = GetSquareRow(sqr);
+
+        // add bonus for passed pawn, will give same bonus for  
+        size_t enemy_count = BitCount(enemy_pawns & kBandColumns[static_cast<size_t>(col)]);
+        if (enemy_count == 0) 
+        {
+            acc.mg += kSign * (kPassedPawnBonus[static_cast<size_t>(Phase::kMg)]);
+            acc.eg += kSign * (kPassedPawnBonus[static_cast<size_t>(Phase::kEg)]);
+        }
+        
+        // Nearby pawn structure bonuses.
+        size_t chain_count = BitCount(ally_pawns & attacks::GetPawnAttack(color, sqr));
+        
+        acc.mg += kSign * (chain_count * kChainPawnBonus[static_cast<size_t>(Phase::kMg)]);
+        acc.eg += kSign * (chain_count * kChainPawnBonus[static_cast<size_t>(Phase::kEg)]);
+
+        size_t phalanx_count = BitCount(ally_pawns & kNearbyColumns[static_cast<size_t>(col)] & ToBitboard(row));
+        acc.mg += kSign * (phalanx_count * kPhalanxPawnBonus[static_cast<size_t>(Phase::kMg)]);
+        acc.eg += kSign * (phalanx_count * kPhalanxPawnBonus[static_cast<size_t>(Phase::kEg)]);
+    }
 }
 
 inline Score EvaluateMaterial(Board& board)
@@ -146,6 +179,9 @@ inline Score EvaluateMaterial(Board& board)
 
     KingSafety<Color::kWhite>(board, white_pawns, acc, (GetLsb(board.GetColoredPieceBB(Color::kWhite, Piece::kKing))), occ);
     KingSafety<Color::kBlack>(board, black_pawns, acc, (GetLsb(board.GetColoredPieceBB(Color::kBlack, Piece::kKing))), occ);
+
+    // PawnStructure<Color::kWhite>(white_pawns, acc, black_pawns);
+    // PawnStructure<Color::kBlack>(black_pawns, acc, white_pawns);
 
     const int phase = std::clamp(board.GetCurStatus().phase_num, 0, kMaxPhase);
     int score = ((acc.mg * phase) + (acc.eg * (kMaxPhase - phase))) / kMaxPhase;

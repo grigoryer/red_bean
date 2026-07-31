@@ -7,22 +7,6 @@
 #include <array>
 
 
-// Search-relative (distance from root) -> TT-relative (distance from this node).
-[[nodiscard]] constexpr Score ScoreToTT(Score score, uint8_t ply)
-{
-    if (score >= kMateThreshold) { return score + ply; }
-    if (score <= -kMateThreshold) { return score - ply; }
-    return score;
-}
-
-// TT-relative -> search-relative.
-[[nodiscard]] constexpr Score ScoreFromTT(Score score, uint8_t ply)
-{
-    if (score >= kMateThreshold) { return score - ply; }
-    if (score <= -kMateThreshold) { return score + ply; }
-    return score;
-}
-
 class TEntry
 {
 public:

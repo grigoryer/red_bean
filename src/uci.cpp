@@ -125,7 +125,10 @@ void UCI::ExecuteSearch(const std::string& args)
 
     int64_t my_time = (board_.GetCurStatus().cur_color_ == Color::kWhite) ? wtime : btime;
     int64_t my_inc  = (board_.GetCurStatus().cur_color_ == Color::kWhite) ? winc  : binc;
-    int64_t time_for_move{(my_time / 20) + (my_inc / 2)};
+
+    int64_t allot = (my_time / 20) + (my_inc / 2);
+    int64_t soft_ms = allot;                  
+    int64_t hard_ms = std::min<int64_t>(allot * 4, my_time / 3);
 
     stop_flag = false;
     bool search_done = false;
@@ -133,7 +136,7 @@ void UCI::ExecuteSearch(const std::string& args)
     ExtMove best_move{};
     std::thread search_thread([&]
     {
-        ExtMove result = searcher_.FindBestMove(); // search forever.
+        ExtMove result = searcher_.FindBestMove(soft_ms); // search forever.
         {
             std::lock_guard<std::mutex> lock(board_mutex);
             best_move = result;
@@ -144,7 +147,7 @@ void UCI::ExecuteSearch(const std::string& args)
 
     {
         std::unique_lock<std::mutex> lock(board_mutex);
-        search_cv.wait_for(lock, std::chrono::milliseconds(time_for_move),
+        search_cv.wait_for(lock, std::chrono::milliseconds(hard_ms),
                             [&] { return search_done; });
     }
 
@@ -152,7 +155,7 @@ void UCI::ExecuteSearch(const std::string& args)
     stop_flag = true;
     search_thread.join();
 
-    std::cout << "bestmove " << ((best_move.GetFrom() == best_move.GetTo()) ? "0" : MoveToString(best_move)) << "\n";
+    std::cout << "bestmove " << ((best_move.GetFrom() == best_move.GetTo()) ? "0000" : MoveToString(best_move)) << "\n";
 }
 
 
@@ -188,7 +191,7 @@ void UCI::CommandWorker()
         else if (cmd == "ucinewgame")
         {
             board_.ResetBoard();
-            searcher_.ttable_->ClearTT();
+            searcher_.ResetSearch();
         }
         else if (cmd == "position")
         {

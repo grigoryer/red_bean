@@ -63,6 +63,11 @@ public:
         return piece_list_[(ToIndex(sqr))];
     }
 
+    [[nodiscard]] bool IsCheck() const
+    {
+        return (status_history_[status_count_].checking_squares_ != 0 || status_history_[status_count_].leaper_checking_squares_ != 0);
+    }
+
     void MovePieceBB(const Piece piece, const Square from_sqr, const Square to_sqr, const Color color)
     {
         Bitboard mask = ToBitboard(from_sqr) | ToBitboard(to_sqr);

@@ -24,13 +24,15 @@ class Search
     // history heurstic for non capture moves.
     std::array<std::array<std::array<MoveScore, kSquareCount>, kSquareCount>, kColorCount> history_heuristic_{};
 
+
+    uint8_t age{}; // for tt
+
     void UpdatePv(uint8_t ply, ExtMove move);
     void AgeHistory();
-    Score QuesSearch(Score alpha, Score beta, uint8_t depth);
-
+    Score QuesSearch(Score alpha, Score beta, uint8_t depth, uint8_t ply);
 
     bool SearchTTMove(ExtMove tt_move, Score& alpha, Score beta, uint8_t depth, uint8_t ply, Score& best_score, ExtMove& best_move, const Status& status, Score& out);
-    bool ProbeTTCutoff(const TEntry& entry, Score alpha, Score beta, uint8_t depth, Score& out) const;
+    bool ProbeTTCutoff(const TEntry& entry, Score alpha, Score beta, uint8_t depth, Score& out, uint8_t ply) const;
     void UpdateQuietHeuristics(ExtMove move, uint8_t depth, uint8_t ply);
     Score NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply);
 
@@ -42,6 +44,8 @@ public:
     std::unique_ptr<TTable> ttable_;
     uint64_t nodes_searched{};
     
-    ExtMove FindBestMove(size_t depth = kMaxSearchDepth);
+    ExtMove FindBestMove(int64_t soft_ms, size_t depth = kMaxSearchDepth);
+
+    void ResetSearch();
     explicit Search(Board& board, std::atomic<bool>& stop_flag);
 };

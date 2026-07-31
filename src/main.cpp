@@ -45,6 +45,7 @@ int main()
     // std::atomic<bool> flag;
     // Board board{kPerft2};
     // Search searcher{board, flag};
+
     // TestSearchSpeed(board, searcher);
 
     // PrintPieceBoard(board);

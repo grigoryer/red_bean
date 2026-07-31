@@ -19,12 +19,11 @@ TEntry* TTable::AddEntry(TEntry entry)
     size_t index = entry.hash_ % kTTableSize;
     auto* bucket_itr = array_[index].bucket_.begin();
     auto* worst_entry = bucket_itr;
-    //uint8_t worst_depth = std::numeric_limits<uint8_t>::max();
     uint8_t worst_age = std::numeric_limits<uint8_t>::max();
 
     while (bucket_itr != array_[index].bucket_.end())
     {
-        // if already have a copy of it.
+        // if already have a copy of it keep the higher depth
         if (bucket_itr->hash_ == entry.hash_)
         {
             if (bucket_itr->depth_ >= entry.depth_)
@@ -43,9 +42,9 @@ TEntry* TTable::AddEntry(TEntry entry)
             break;
         };
 
-        if (bucket_itr->age_ < worst_age)
+        if (bucket_itr->age_ <= worst_age)
         {
-            worst_age = bucket_itr->depth_;
+            worst_age = bucket_itr->age_;
             worst_entry = bucket_itr;
         }
         bucket_itr++;
@@ -82,7 +81,6 @@ void TTable::ClearTT()
         }
     }
 }
-
 
 
 void TTable::ProfileTableSpread()

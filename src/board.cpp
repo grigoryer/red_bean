@@ -86,6 +86,7 @@ void ParseFullMove(Status& status, const std::string& field)
 void Board::ParseFenString(const std::string& fen_string)
 { 
     Status& temp_status = status_history_.at(status_count_);
+    temp_status = Status{};
 
     for (auto& bb : piece_bb_) { bb = 0ULL; }
     for (auto& bb : color_bb_) { bb = 0ULL; }
