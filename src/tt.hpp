@@ -36,8 +36,9 @@ public:
     uint64_t node_hits{0};
     uint64_t node_requests{0};
 
-    TEntry* AddEntry(TEntry entry);
-    TEntry* GetEntry(Hash hash);
+    void AddEntry(TEntry entry);
+    TEntry GetEntry(Hash hash);
+    bool ProbeEntry(Hash hash);
     void ProfileTableSpread();
     void ClearTT();
 };

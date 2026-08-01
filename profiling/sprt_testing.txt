@@ -63,3 +63,26 @@ Ptnml(0-2): [12, 43, 85, 66, 45], WL/DD Ratio: 1.02
 LLR: 2.95 (100.2%) (-2.94, 2.94) [0.00, 10.00]
 --------------------------------------------------
 SPRT ([0.00, 10.00]) completed - H1 was accepted
+
+
+Null Move Prunning addtion
+--------------------------------------------------
+Results of NMP vs TIME (10+0.1, NULL, NULL, opening_book.pgn):
+Elo: 46.99 +/- 20.69, nElo: 60.93 +/- 26.47
+LOS: 100.00 %, DrawRatio: 35.05 %, PairsRatio: 1.79
+Games: 662, Wins: 268, Losses: 179, Draws: 215, Points: 375.5 (56.72 %)
+Ptnml(0-2): [19, 58, 116, 91, 47], WL/DD Ratio: 2.52
+LLR: 2.97 (100.9%) (-2.94, 2.94) [0.00, 10.00]
+--------------------------------------------------
+SPRT ([0.00, 10.00]) completed - H1 was accepted
+
+
+Bug Fixes and PVS at root addtion
+--------------------------------------------------
+Results of BUG_FIXES vs NMP (10+0.1, NULL, NULL, opening_book.pgn):
+Elo: 60.07 +/- 23.83, nElo: 77.36 +/- 30.04
+LOS: 100.00 %, DrawRatio: 35.41 %, PairsRatio: 2.02
+Games: 514, Wins: 214, Losses: 126, Draws: 174, Points: 301.0 (58.56 %)
+Ptnml(0-2): [12, 43, 91, 67, 44], WL/DD Ratio: 1.84
+LLR: 2.96 (100.5%) (-2.94, 2.94) [0.00, 10.00]
+--------------------------------------------------

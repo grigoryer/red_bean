@@ -14,7 +14,7 @@ TEntry::TEntry(Hash hash, Score score, Move refutation_move, uint8_t depth, Node
 { }
 
 
-TEntry* TTable::AddEntry(TEntry entry)
+void TTable::AddEntry(TEntry entry)
 {
     size_t index = entry.hash_ % kTTableSize;
     auto* bucket_itr = array_[index].bucket_.begin();
@@ -28,7 +28,7 @@ TEntry* TTable::AddEntry(TEntry entry)
         {
             if (bucket_itr->depth_ >= entry.depth_)
             {
-                return bucket_itr;
+                return;
             }
             
             worst_entry = bucket_itr;
@@ -51,11 +51,22 @@ TEntry* TTable::AddEntry(TEntry entry)
     }
     
     *worst_entry = entry;
-
-    return worst_entry;
 }
 
-TEntry* TTable::GetEntry(Hash hash)
+TEntry TTable::GetEntry(Hash hash)
+{
+    size_t index = hash % kTTableSize;
+
+    for (auto& entry : array_[index].bucket_)
+    {
+        if (entry.hash_ == hash) { node_hits++; return entry; }
+    }
+
+    return TEntry{};
+};
+
+
+bool TTable::ProbeEntry(Hash hash)
 {
     size_t index = hash % kTTableSize;
 
@@ -63,10 +74,10 @@ TEntry* TTable::GetEntry(Hash hash)
 
     for (auto& entry : array_[index].bucket_)
     {
-        if (entry.hash_ == hash) { node_hits++; return &entry; }
+        if (entry.hash_ == hash) { node_hits++; return true; }
     }
 
-    return nullptr;
+    return false;
 };
     
 

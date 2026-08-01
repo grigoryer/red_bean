@@ -251,4 +251,22 @@ void UndoMove(Board& board, ExtMove move)
 }
 
 
+void MakeNullMove(Board& board) //NOLINT
+{   
+    auto& status = board.CreateNewStatus();
+
+    status.half_move_ = 0;
+    SetEpsquare(status, Square::kNoSquare);
+    ChangeColor(status);
+}
+
+
+
+void UndoNullMove(Board& board)
+{
+    board.PopStatus();
+}
+
 }  // namespace moving
+
+

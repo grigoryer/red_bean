@@ -34,7 +34,7 @@ class Search
     bool SearchTTMove(ExtMove tt_move, Score& alpha, Score beta, uint8_t depth, uint8_t ply, Score& best_score, ExtMove& best_move, const Status& status, Score& out);
     bool ProbeTTCutoff(const TEntry& entry, Score alpha, Score beta, uint8_t depth, Score& out, uint8_t ply) const;
     void UpdateQuietHeuristics(ExtMove move, uint8_t depth, uint8_t ply);
-    Score NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply);
+    Score NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool nmp_flag);
 
 
     std::pair<ExtMove, Score> NegaMaxWrapper(int depth, Score alpha, Score beta, ExtMove prev_best);

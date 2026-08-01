@@ -137,7 +137,7 @@ public:
         {
             if (status_history_[i].hash_ == cur.hash_)
             {
-                if (++same_hash_count >= 2) { return true; }
+                if (++same_hash_count >= 1) { return true; }
             }
         }
         return false;

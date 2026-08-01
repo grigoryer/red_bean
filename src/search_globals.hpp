@@ -11,6 +11,7 @@ using MoveScore = uint16_t;
 constexpr Score kPosInf = std::numeric_limits<Score>::max() - 3000;
 constexpr Score kNegInf = -kPosInf;
 constexpr Score kMateScore = kNegInf + 1000;
+constexpr Score kMateScoreThreshold = -kMateScore - 1000;
 constexpr Score kDrawScore = -50;
 
 // Depth and Iterative Deepening
@@ -18,7 +19,7 @@ constexpr int kMaxPly = 64;
 constexpr size_t kMaxSearchDepth{kMaxPly};
 
 // Transposition table
-constexpr size_t kTTableSize = 1 << 23; // switch to 23 for lichess.
+constexpr size_t kTTableSize = 1 << 21; // switch to 23 for lichess.
 constexpr size_t kTBucketSize = 1 << 2;
 enum class NodeType : uint8_t
 {

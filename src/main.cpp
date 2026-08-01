@@ -23,7 +23,7 @@ auto TestSearchSpeed(Board board, Search& searcher)
     PrintPieceBoard(board);
     PrintStatus(board.GetCurStatus());
     auto start = std::chrono::high_resolution_clock::now();
-    Move move = searcher.FindBestMove(6);
+    Move move = searcher.FindBestMove(100000, 6);
     auto end = std::chrono::high_resolution_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
@@ -39,29 +39,13 @@ auto TestSearchSpeed(Board board, Search& searcher)
 
 int main() 
 {    
-    UCI engine{};
-    engine.Loop();
+    // UCI engine{};
+    // engine.Loop();
 
-    // std::atomic<bool> flag;
-    // Board board{kPerft2};
-    // Search searcher{board, flag};
-
-    // TestSearchSpeed(board, searcher);
-
-    // PrintPieceBoard(board);
-
-    // while(std::cin.get())
-    // {
-    //     PrintPieceBoard(board);
-    //     PrintStatus(board.GetCurStatus());
-    //     ExtMove move = searcher.FindBestMove(10);
-    //     moving::MakeMove(board, move);
-    //     PrintPieceBoard(board);
-    //     PrintMove(move);
-    //     searcher.ttable_->ProfileTableSpread();
-    //     ExtMove move2 = searcher.FindBestMove(10);
-    // }
-
+    std::atomic<bool> flag;
+    Board board{kPerft2};
+    Search searcher{board, flag};
+    TestSearchSpeed(board, searcher);
     
     return 0;
 }

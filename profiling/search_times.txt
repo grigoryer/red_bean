@@ -221,3 +221,40 @@ Fixed qsearch added check detection and continution. Guard raised to 7.
     info depth 6 score cp 21 nodes 118776 pv e2a6 b4c3 d2c3 e6d5 e4d5 h3g2
 
     Nodes: 118776
+
+Null Move Prunning TESTING
+
+    WWITHOUT
+    info depth 1 score cp 71 nodes 894 nps 178 pv e2a6
+    info depth 2 score cp 119 nodes 2404 nps 171 pv e2a6 b4c3
+    info depth 3 score cp 34 nodes 5724 nps 197 pv e2a6 b4c3 f3c3
+    info depth 4 score cp 79 nodes 20503 nps 259 pv e2a6 b4c3 d2c3 e6d5
+    info depth 5 score cp 16 nodes 66275 nps 376 pv e2a6 e6d5 e5g6 f7g6 c3b5
+    info depth 6 score cp 24 nodes 110977 nps 308 pv e2a6 b4c3 d2c3 e6d5 e4d5 h3g2
+    info depth 7 score cp -25 nodes 213537 nps 333 pv e2a6 b4c3 d2c3 e6d5 e5g4 h3g2 f3g2
+    info depth 8 score cp 2 nodes 730677 nps 401 pv e2a6 e6d5 c3d5 b6d5 a6b7 a8b8 b7d5 f6d5
+
+    Nodes: 730677
+
+    Before TT MOVE
+    info depth 1 score cp 71 nodes 894 nps 127 pv e2a6
+    info depth 2 score cp 119 nodes 2404 nps 200 pv e2a6 b4c3
+    info depth 3 score cp 34 nodes 5724 nps 272 pv e2a6 b4c3 f3c3
+    info depth 4 score cp 79 nodes 20503 nps 366 pv e2a6 b4c3 d2c3 e6d5
+    info depth 5 score cp 16 nodes 79735 nps 453 pv e2a6 e6d5 e5g6 f7g6 c3b5
+    info depth 6 score cp 24 nodes 115158 nps 314 pv e2a6 b4c3 d2c3 e6d5 e4d5 h3g2
+    info depth 7 score cp -25 nodes 278229 nps 361 pv e2a6 b4c3 d2c3 e6d5 e5g4 h3g2 f3g2
+    info depth 8 score cp 2 nodes 704797 nps 369 pv e2a6 e6d5 c3d5 b6d5 a6b7 a8b8 b7d5 f6d5
+
+    Nodes: 704797
+
+
+PVS at root and bug fixes
+    info depth 1 score cp 71 nodes 860 nps 430000 time 2 pv e2a6
+    info depth 2 score cp 119 nodes 1688 nps 562666 time 3 pv e2a6 b4c3
+    info depth 3 score cp 34 nodes 5724 nps 954000 time 6 pv e2a6 b4c3 f3c3
+    info depth 4 score cp 79 nodes 19260 nps 1132941 time 17 pv e2a6 b4c3 d2c3 e6d5
+    info depth 5 score cp 16 nodes 66145 nps 1837361 time 36 pv e2a6 e6d5 e5g6 f7g6 c3b5
+    info depth 6 score cp 24 nodes 101466 nps 1561015 time 65 pv e2a6 b4c3 d2c3 e6d5 e4d5 h3g2
+
+    Nodes: 101466
