@@ -11,7 +11,9 @@ Checks: >
   -modernize-use-trailing-return-type,
   -readability-magic-numbers,
   -cppcoreguidelines-avoid-magic-numbers,
-  -cppcoreguidelines-pro-bounds-constant-array-index
+  -cppcoreguidelines-pro-bounds-constant-array-index,
+  -cppcoreguidelines-narrowing-conversions,
+  -bugprone-narrowing-conversions
 
 WarningsAsErrors: ''
 HeaderFilterRegex: '^(?!.*(build|third_party|external)).*'

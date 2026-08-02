@@ -19,7 +19,7 @@ constexpr int kMaxPly = 64;
 constexpr size_t kMaxSearchDepth{kMaxPly};
 
 // Transposition table
-constexpr size_t kTTableSize = 1 << 23; // switch to 23 for lichess.
+constexpr size_t kTTableSize = 1 << 23; // switch to 23 for lichess. Create hash option on uci to not do this.
 constexpr size_t kTBucketSize = 1 << 2;
 enum class NodeType : uint8_t
 {
@@ -35,6 +35,16 @@ constexpr uint8_t kQuesDepth = 7;
 // Late Move Reduction
 constexpr double kLMR_Base = 0.75;
 constexpr double kLMR_Divisor = 2.25;
+
+
+// Reverse Futlity Prunning
+constexpr uint8_t kRFP_MaxDepth = 6; // depth and which we can check for rfp, if our remaining depth is too high we cant trust it 100%.
+constexpr Score kRFP_Margin = 80; // for how deep we prune we increase the margin, so depth * margin. 
+
+
+// Futility Prunning
+constexpr Score kFutilityMargin = 100;
+constexpr uint8_t kFutilityMaxDepth = 3; // depth
 
 
 /// MOVE OREDERING

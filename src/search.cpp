@@ -361,7 +361,20 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool 
         if (ProbeTTCutoff(probe_entry, alpha, beta, depth, cutoff, ply)) { return cutoff; } // Check if we can pprune based on tt entry aka PV of this position. If cutoff then return prune this branch.
     }
 
-    // Null Move Prunning. Only apply, when depth is relevant, not in check, cur side has a non pawn piece, previous move was not null move and also only on pv nodes.
+    Score static_eval{kNegInf};
+    // Reverse futlity prunning, if currently not in check and static eval is above beta + margin, not pv node, and not in mate threshold (then it doesnt matter). We can prune.
+    {
+        if (!is_check)
+        {
+            static_eval = evaluation::Evaluate(board_) * ((status.cur_color_ == Color::kBlack) ? -1 : 1);
+            if (depth <= kRFP_MaxDepth && (beta <= alpha + 1) && std::abs(beta) < kMateScoreThreshold && (static_eval - (kRFP_Margin * depth)) >= beta)
+            {
+                return static_eval;
+            }
+        }
+    }
+
+    // Null Move Prunning. Only apply, when depth is relevant, not in check, cur side has a non pawn piece, previous move was not null move and also only on non pv nodes.
     {
         if (depth >= 5 && !is_check && !nmp_flag && (beta <= alpha + 1)
                 && ((board_.GetColorBB(status.cur_color_) & ~board_.GetColoredPieceBB(status.cur_color_, Piece::kPawn) & ~board_.GetColoredPieceBB(status.cur_color_, Piece::kKing)) != 0))
@@ -419,16 +432,27 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool 
 
         if (tt_entry_exists && (move == probe_entry.refutation_move_)) { continue; }
 
-        nodes_searched++;
-
+        
         bool is_quiet = (move.GetType() == MoveType::kNormal) && (board_.GetPieceOnSquare(move.GetTo()) == Piece::kNone);
         
-        moving::MakeMove(board_, move);    
-        // Since we always maximize for each player, we need to swap beta and alpha. Since the beta for maximizing player is the alpha for minimizing player and vice versa.
-        // We need to swap signs, since a worse score for current player is a better score for the opposing player.
-        // Also we need to flip the score when it is returned since again that is opposing players perspective.
+        // Futility Prunning 
+        // At edge nodes if this node has no chance to increase alpha then prune it.
+        // Needs to not be in check, be a quiet move, be below selected depth, fail 
+        // to increase alpha with margin that scales with depth, and not inside mate range
+        { 
+            if (best_score_set && is_quiet && !is_check && (beta <= alpha + 1) && depth <= kFutilityMaxDepth 
+            && (std::abs(alpha) < kMateScoreThreshold) && ((static_eval + depth * kFutilityMargin) <= alpha))
+            {
+                continue;
+            }
+        }
         
-        // pvs
+        moving::MakeMove(board_, move);    
+        nodes_searched++;
+        
+
+        // PVS or Scout, If we have a set score scout ahead and test if the move is pv, if it is then redo the search with wider bounds
+        // If it isnt then we escape with very small window and dont have to pay for entire search.
         Score score{};
         if (!best_score_set)  // If no previous bounds then just do a full search.
         {
@@ -437,6 +461,7 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool 
         }
         else // if we have some bounds then we can do a reduction if it passes our criteria with pvs.
         {
+            // Late Move Reduction, for moves furthur down in order reduce depth.
             int8_t reduction{0};
 
             if (depth >= 3 && legal_move_count >= 4 && is_quiet && !is_check)
@@ -461,6 +486,7 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool 
         
         moving::UndoMove(board_, move);
 
+
         // current score exceeded the acceptable threshhold of the opposing player, so no need to search rest of branch.
         if (score >= beta && !stop_flag_)
         {
@@ -479,6 +505,7 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool 
             ttable_->AddEntry({board_.GetCurStatus().hash_, ScoreToTable(score, ply), move, depth, NodeType::LOWER, age});
             return score; 
         }
+
 
         // if score is now exceeding alpha this is a new high score, adjust alpha, update pv, and best score.
         const bool raised_alpha = (score > alpha);
