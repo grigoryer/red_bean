@@ -33,7 +33,7 @@ private:
     std::array<Bitboard, kPieceCount> piece_bb_{};      // Bitboard for each piece
     std::array<Bitboard, kColorCount + 1> color_bb_{};  // Bitboard for each occupancy, + 1 for both sides, reduntand but will save lots of runtime calls later.
     
-    std::array<Status, 512> status_history_;
+    std::array<Status, 1024> status_history_;
     uint16_t status_count_{};
 
     

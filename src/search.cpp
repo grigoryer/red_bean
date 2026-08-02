@@ -1,4 +1,5 @@
 #include "search.hpp"
+#include "attacks.hpp"
 #include "board.hpp"
 #include "checking.hpp"
 #include "eval_constants.hpp"
@@ -14,6 +15,19 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
+#include <iomanip>
+#include <limits>
+#include <string>
+
+
+namespace {
+inline int PieceValue(Piece piece)
+{
+    return (piece == Piece::kNone) ? 0 : kPieceMoveWorth[static_cast<size_t>(piece)];
+}
+}
+
 
 Search::Search(Board& board, std::atomic<bool>& stop_flag)
     : board_(board), stop_flag_(stop_flag), ttable_(std::make_unique<TTable>()) { }
@@ -44,6 +58,7 @@ void Search::AgeHistory()
     }
 }
 
+// Capture Moves are given a score with MVV_LVA in Generation, this handles other cases.
 void Search::BoostMoves(MoveList& current_moves, uint8_t ply)
 {
     Color ally_color = board_.GetCurStatus().cur_color_;
@@ -51,7 +66,11 @@ void Search::BoostMoves(MoveList& current_moves, uint8_t ply)
     {
         auto& move = current_moves.list[i];
         
-        if (move == killers_[ply][0])
+        if (board_.GetPieceOnSquare(move.GetTo()) != Piece::kNone && !SeeGe(move, 0)) // Bad captures
+        {
+            move.score_ += kBadCapturePenalty; // If its a capture test the SEE and if it does not pass the threshold add a bad capture penalty.
+        }
+        else if (move == killers_[ply][0]) // Killer moves
         { 
             move.score_ += kKiller1Boost;
         }
@@ -59,20 +78,85 @@ void Search::BoostMoves(MoveList& current_moves, uint8_t ply)
         {
             move.score_ += kKiller2Boost; 
         }
-        else if (board_.GetPieceOnSquare(move.GetTo()) == Piece::kNone)
+        else if (board_.GetPieceOnSquare(move.GetTo()) == Piece::kNone) // Quiet and not Killer check its history for a score.
         {
-            const MoveScore raw = history_heuristic_[static_cast<size_t>(ally_color)]
-                                            [static_cast<size_t>(move.GetFrom())]
-                                            [static_cast<size_t>(move.GetTo())];
-
-            move.score_ += static_cast<MoveScore>((raw * kHistoryCeiling) / kHistoryMax);
+            const MoveScore raw = history_heuristic_[static_cast<size_t>(ally_color)][static_cast<size_t>(move.GetFrom())][static_cast<size_t>(move.GetTo())];
+            move.score_ += static_cast<MoveScore>((raw * kHistoryMoveBoostCeiling) / kHistoryMax);
         }
     }
 }
 
+bool Search::SeeGe(ExtMove move, MoveScore threshold) 
+{
+    // Promotions and en passant change what sits on the square on arrival.
+    if (move.GetType() != MoveType::kNormal) { return true; }
+
+    const Square from = move.GetFrom();
+    const Square to = move.GetTo();
+
+    int balance = PieceValue(board_.GetPieceOnSquare(to)) - threshold;
+    if (balance < 0) { return false; }   // a free victim still misses the threshold
+
+    balance = PieceValue(board_.GetPieceOnSquare(from)) - balance;
+    if (balance <= 0) { return true; }   // holds even if the capturer is lost
+
+    Bitboard occ = board_.GetColorBB(Color::kAll) & ~ToBitboard(from) & ~ToBitboard(to);
+    Bitboard attackers = attacks::AttacksTo(board_, to, occ);
+
+    const Bitboard bishops_queens = board_.GetPieceBB(Piece::kBishop) | board_.GetPieceBB(Piece::kQueen);
+    const Bitboard rooks_queens = board_.GetPieceBB(Piece::kRook) | board_.GetPieceBB(Piece::kQueen);
+
+    Color stm = board_.GetCurStatus().cur_color_;
+    bool verdict = true;
+
+    while (true)
+    {
+        stm = GetEnemyColor(stm);
+        attackers &= occ;  // drop revealed sliders that have since been captured
+
+        const Bitboard mine = attackers & board_.GetColorBB(stm);
+        if (mine == 0) { break; }  // the speculated recapture never happens
+
+        verdict = !verdict; // confirm it did happen
+
+        // Least valuable attacker first.
+        Piece piece = Piece::kNone;
+        for (const Piece candidate : { Piece::kPawn, Piece::kKnight, Piece::kBishop, Piece::kRook, Piece::kQueen, Piece::kKing })
+        {
+            if ((mine & board_.GetPieceBB(candidate)) != 0) { piece = candidate; break; }
+        }
+
+        if (piece == Piece::kKing)
+        {
+            // A king may only recapture when nothing enemy is still aiming here.
+            if ((attackers & board_.GetColorBB(GetEnemyColor(stm))) != 0) { verdict = !verdict; }
+            break;
+        }
+
+        balance = PieceValue(piece) - balance;   // speculate the next recapture
+        if (balance < (verdict ? 1 : 0)) { break; }
+
+        occ ^= ToBitboard(GetLsb(mine & board_.GetPieceBB(piece)));
+
+        // Reveal sliders that were hiding behind what we just removed. A knight is
+        // never on a line through the target, so it can expose nothing.
+        if (piece == Piece::kPawn || piece == Piece::kBishop || piece == Piece::kQueen)
+        {
+            attackers |= attacks::GetBishopAttack(occ, to) & bishops_queens;
+        }
+        if (piece == Piece::kRook || piece == Piece::kQueen)
+        {
+            attackers |= attacks::GetRookAttack(occ, to) & rooks_queens;
+        }
+    }
+
+    return verdict;
+}
+
+
 void PickNextMove(MoveList& current_moves, size_t cur_index)
 {
-    MoveScore best_score = 0;
+    MoveScore best_score = std::numeric_limits<MoveScore>::min();
     size_t best_move = cur_index;
 
     for (size_t i{cur_index}; i < current_moves.move_count; ++i)
@@ -86,13 +170,13 @@ void PickNextMove(MoveList& current_moves, size_t cur_index)
     std::swap(current_moves.list[cur_index], current_moves.list[best_move]);
 }
 
-
 // the three TT bound checks. True => caller returns `out`.
 bool Search::ProbeTTCutoff(const TEntry& entry, Score alpha, Score beta, uint8_t depth, Score& out, uint8_t ply) const
 {
-    Score tt_score = entry.score_;
+    // if ((beta - alpha) > 1) { return false; } 
     if (entry.depth_ >= depth)
     {
+        Score tt_score = TableToScore(entry.score_, ply);
         // Exact means this value was evaluated completely inside the tree (no cutoffs), so no need to search it again.
         if (entry.type_ == NodeType::EXACT) { out = tt_score; return true; }
 
@@ -117,7 +201,14 @@ bool Search::SearchTTMove(ExtMove tt_move, Score& alpha, Score beta, uint8_t dep
     // current score exceeded the acceptable threshhold of the opposing player, so no need to search rest of branch.
     if (tt_move_score >= beta && !stop_flag_)
     {
-        ttable_->AddEntry({board_.GetCurStatus().hash_, tt_move_score, tt_move, depth, NodeType::LOWER, age});
+        // if tt move is quiet then update its history as well.
+        if ((tt_move.GetType() == MoveType::kNormal) && (board_.GetPieceOnSquare(tt_move.GetTo()) == Piece::kNone))
+        {
+            UpdateKillers(tt_move, depth, ply);
+            UpdateHistory(tt_move, std::clamp<MoveScore>(static_cast<MoveScore>(depth * depth), -kHistoryMax, kHistoryMax));
+        }
+
+        ttable_->AddEntry({board_.GetCurStatus().hash_, ScoreToTable(tt_move_score, ply), tt_move, depth, NodeType::LOWER, age});
         out = tt_move_score;
         return true;
     }
@@ -129,9 +220,9 @@ bool Search::SearchTTMove(ExtMove tt_move, Score& alpha, Score beta, uint8_t dep
         alpha = tt_move_score;
         UpdatePv(ply, tt_move);
     }
+    
     return false;
 }
-
 
 Score Search::QuesSearch(Score alpha, Score beta, uint8_t depth, uint8_t ply)
 {
@@ -140,7 +231,6 @@ Score Search::QuesSearch(Score alpha, Score beta, uint8_t depth, uint8_t ply)
 
     between::SetCheckersAndBlockers(board_, board_.GetCurStatus());
     const bool is_check = board_.IsCheck();
-
     
     Score standing_pat = (evaluation::Evaluate(board_) * (board_.GetCurStatus().cur_color_ == Color::kBlack ? -1 : 1));
     Score best_score{};
@@ -195,6 +285,9 @@ Score Search::QuesSearch(Score alpha, Score beta, uint8_t depth, uint8_t ply)
         if (!legal) { continue; }
 
         legal_count++;
+
+        if (!is_check && !SeeGe(move, 0)) { continue; }
+
         nodes_searched++;
 
         moving::MakeMove(board_, move);
@@ -215,24 +308,24 @@ Score Search::QuesSearch(Score alpha, Score beta, uint8_t depth, uint8_t ply)
     return best_score;
 }
 
+void Search::UpdateHistory(ExtMove move, MoveScore bonus)
+{
+    MoveScore& entry = history_heuristic_[static_cast<size_t>(board_.GetCurStatus().cur_color_)][static_cast<size_t>(move.GetFrom())][static_cast<size_t>(move.GetTo())];
+    entry += bonus - entry * std::abs(bonus) / kHistoryMax; // age history 
+}
 
-void Search::UpdateQuietHeuristics(ExtMove move, uint8_t depth, uint8_t ply)
+void Search::UpdateKillers(ExtMove move, uint8_t depth, uint8_t ply)
 {
     // On a non capture move we update the history heuristic and killer move if needed.
     if (board_.GetPieceOnSquare(move.GetTo()) != Piece::kNone) { return; }
 
-    if (!(killers_[ply][0] == move)) // update killers
+    // Killers are moves that caused a beta cutoff at a specific ply.
+    if (!(killers_[ply][0] == move))
     {
         killers_[ply][1] = killers_[ply][0];
         killers_[ply][0] = move;
     }
-
-    auto& entry = history_heuristic_[static_cast<size_t>(board_.GetCurStatus().cur_color_)][static_cast<size_t>(move.GetFrom())][static_cast<size_t>(move.GetTo())];
-    entry = static_cast<MoveScore>(entry + (depth * depth));
-    
-    if (entry >= kHistoryMax) { AgeHistory(); }
 }
-
 
 
 // Min and max player are combined into one, where alpha is equal to the current players score and beta is equal to the opposing player score.
@@ -245,28 +338,27 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool 
     // check for 50 move rule and 3 fold repitition
     if (ply > 0 && board_.IsDraw()) { return kDrawScore; }
     
-    if (depth == 0) { return QuesSearch(alpha, beta, kQuesDepth, ply); }
+    if (depth == 0|| ply >= (kMaxPly - kQuesDepth - 1)) { return QuesSearch(alpha, beta, kQuesDepth, ply); } // check extension, currently no guard later add a more mechanical guard for stopping depth blowups.
 
-    Score best_score = kNegInf; 
+    Score best_score = kNegInf;
     bool best_score_set = false;
     ExtMove best_move{};
     Score orig_alpha = alpha;
     auto& status = board_.GetCurStatus();
     Color enemy_color = GetEnemyColor(status.cur_color_);
     between::SetCheckersAndBlockers(board_, status); // set checker blockers for each position.
-    bool is_check = board_.IsCheck();
-
-    // TT based cutoffs 
-    bool tt_entry_exists = ttable_->ProbeEntry(status.hash_); // bool if it exist if it doesnt dont do anything.
-    TEntry probe_entry{}; // create here so can use it in move ordering.
     
+    bool is_check = board_.IsCheck();
+    if (is_check) { depth++; }
+
+    // TT based cutoff
+    TEntry probe_entry = ttable_->GetEntry(status.hash_);
+    bool tt_entry_exists = probe_entry.hash_ != 0; 
     
     if (tt_entry_exists) // prove for cutoff.
     {
-        probe_entry = ttable_->GetEntry(status.hash_);
         Score cutoff{};
-        // Check if we can pprune based on tt entry aka PV of this position. If cutoff then return prune this branch.
-        if (ProbeTTCutoff(probe_entry, alpha, beta, depth, cutoff, ply)) { return cutoff; }
+        if (ProbeTTCutoff(probe_entry, alpha, beta, depth, cutoff, ply)) { return cutoff; } // Check if we can pprune based on tt entry aka PV of this position. If cutoff then return prune this branch.
     }
 
     // Null Move Prunning. Only apply, when depth is relevant, not in check, cur side has a non pawn piece, previous move was not null move and also only on pv nodes.
@@ -311,6 +403,11 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool 
 
     // After getting the score we can add this position to Transposition table.
     size_t legal_move_count{};
+    MoveScore history_bonus = std::clamp<MoveScore>(static_cast<MoveScore>(depth * depth), -kHistoryMax, kHistoryMax);
+    
+    std::array<ExtMove, 64> searched_quiets{};
+    size_t searched_quiet_count{};
+
     for (size_t i{}; i < possible_moves.move_count; ++i)
     {
         PickNextMove(possible_moves, i);
@@ -367,20 +464,40 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool 
         // current score exceeded the acceptable threshhold of the opposing player, so no need to search rest of branch.
         if (score >= beta && !stop_flag_)
         {
-            UpdateQuietHeuristics(move, depth, ply); // Update the quiet moves history and killer moves.
-            ttable_->AddEntry({board_.GetCurStatus().hash_, score, move, depth, NodeType::LOWER, age});
+            // if move is quiet, update the killers for this ply and also update history of this move with a bonus. 
+            // For quiet moves prior to this one that didnt cause a cutoff should be penalized os in future will go after this move.
+            if (is_quiet) 
+            { 
+                UpdateKillers(move, depth, ply); 
+                UpdateHistory(move, history_bonus);
+
+                for (size_t q{}; q < searched_quiet_count; ++q)
+                {
+                    UpdateHistory(searched_quiets[q], -history_bonus);
+                }
+            }
+            ttable_->AddEntry({board_.GetCurStatus().hash_, ScoreToTable(score, ply), move, depth, NodeType::LOWER, age});
             return score; 
         }
+
         // if score is now exceeding alpha this is a new high score, adjust alpha, update pv, and best score.
+        const bool raised_alpha = (score > alpha);
+
         if (score > best_score)
         {
             best_score = score;
-            best_move = move;
-            if (score > alpha)
-            {
-                alpha = score;
-                UpdatePv(ply, move);
-            }
+            best_move  = move;
+        }
+
+        if (raised_alpha)
+        {
+            alpha = score;
+            UpdatePv(ply, move);
+        }
+
+        if (is_quiet && searched_quiet_count < searched_quiets.size())
+        {
+            searched_quiets[searched_quiet_count++] = move;
         }
     }
 
@@ -390,7 +507,7 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool 
     
     if (best_score > orig_alpha) { type = NodeType::EXACT; } // Exceeded alpha but lower than bet, its exactly inside our range.
     
-    if (!stop_flag_) { ttable_->AddEntry({board_.GetCurStatus().hash_, best_score, best_move, depth, type, age}); }
+    if (!stop_flag_) { ttable_->AddEntry({board_.GetCurStatus().hash_, ScoreToTable(best_score, ply), best_move, depth, type, age}); }
 
     return best_score;
 };
@@ -486,10 +603,10 @@ ExtMove Search::FindBestMove(int64_t soft_ms, size_t depth)
     auto search_start = std::chrono::high_resolution_clock::now();
     int64_t prev_iter_time = 0;
 
+    AgeHistory();
     for (int i{1}; i <= depth; i++)
     {
         auto iter_start = std::chrono::high_resolution_clock::now();
-
         Score delta = 25; // 1/4 of the pawn worth
         nodes_searched = 0;
         std::pair<ExtMove, Score> move_score_pair;
@@ -523,8 +640,8 @@ ExtMove Search::FindBestMove(int64_t soft_ms, size_t depth)
 
         // Test if we can run another iteration
         auto now = std::chrono::high_resolution_clock::now();
-    int64_t elapsed = (now - search_start).count() / 1000000;
-    int64_t iter_time = (now - iter_start).count() / 1000000;
+        int64_t elapsed = (now - search_start).count() / 1000000;
+        int64_t iter_time = (now - iter_start).count() / 1000000;
 
         if (!stop_flag_)
         {
@@ -532,7 +649,7 @@ ExtMove Search::FindBestMove(int64_t soft_ms, size_t depth)
             best_move = move_score_pair.first;
             std::cout 
             << "info depth " << i 
-            << " score cp " << move_score_pair.second 
+            << " score cp " << move_score_pair.second
             << " nodes " << nodes_searched
             << " nps " << ((elapsed > 0) ? (static_cast<int64_t>(nodes_searched) * 1000 / elapsed) : 0)
             << " time " << elapsed
@@ -568,4 +685,72 @@ void Search::ResetSearch()
     ttable_->ClearTT();
 
     age = 0;
+}
+
+
+void Search::PrintHistoryStats() const
+{
+    constexpr int kBuckets = 16;
+    constexpr size_t kTotal = kColorCount * kSquareCount * kSquareCount;
+
+    int64_t nonzero{}, pos{}, neg{}, floor_pinned{}, ceil_pinned{}, sum{};
+    MoveScore min_val = std::numeric_limits<MoveScore>::max();
+    MoveScore max_val = std::numeric_limits<MoveScore>::min();
+    int scaled_min = kHistoryMoveBoostCeiling;
+    int scaled_max = -kHistoryMoveBoostCeiling;
+    std::array<int64_t, kBuckets> buckets{};
+
+    // "pinned" = within 5% of the gravity fixed point at either end.
+    constexpr MoveScore kPinBand = kHistoryMax / 20;
+
+    for (size_t c{}; c < kColorCount; ++c)
+    {
+        for (size_t f{}; f < kSquareCount; ++f)
+        {
+            for (size_t t{}; t < kSquareCount; ++t)
+            {
+                const MoveScore raw = history_heuristic_[c][f][t];
+                if (raw == 0) { continue; }
+
+                nonzero++;
+                sum += raw;
+                min_val = std::min(min_val, raw);
+                max_val = std::max(max_val, raw);
+                (raw < 0) ? neg++ : pos++;
+
+                if (raw <= -kHistoryMax + kPinBand) { floor_pinned++; }
+                if (raw >=  kHistoryMax - kPinBand) { ceil_pinned++; }
+
+                // Exactly what BoostMoves adds to move.score_ — the only thing ordering sees.
+                const int scaled = (static_cast<int>(raw) * kHistoryMoveBoostCeiling) / kHistoryMax;
+                scaled_min = std::min(scaled_min, scaled);
+                scaled_max = std::max(scaled_max, scaled);
+
+                const int idx = ((scaled + kHistoryMoveBoostCeiling) * kBuckets) / (2 * kHistoryMoveBoostCeiling + 1);
+                buckets[std::clamp(idx, 0, kBuckets - 1)]++;
+            }
+        }
+    }
+
+    if (nonzero == 0) { std::cout << "info string history: table empty\n"; return; }
+
+    std::cout << "info string history: nonzero " << nonzero << "/" << kTotal
+              << "  pos " << pos << "  neg " << neg << "\n";
+    std::cout << "info string history: min " << min_val << "  max " << max_val
+              << "  mean " << (sum / nonzero) << "\n";
+    std::cout << "info string history: pinned floor " << floor_pinned
+              << "  pinned ceiling " << ceil_pinned << "\n";
+    std::cout << "info string history: scaled range [" << scaled_min << " .. " << scaled_max
+              << "] of +/-" << kHistoryMoveBoostCeiling << "\n";
+
+    int64_t peak = 1;
+    for (const int64_t b : buckets) { peak = std::max(peak, b); }
+
+    for (int i{}; i < kBuckets; ++i)
+    {
+        const int lo = -kHistoryMoveBoostCeiling + ((2 * kHistoryMoveBoostCeiling * i) / kBuckets);
+        std::cout << "info string hist " << std::setw(6) << lo << " | "
+                  << std::string(static_cast<size_t>((buckets[i] * 40) / peak), '#')
+                  << " " << buckets[i] << "\n";
+    }
 }

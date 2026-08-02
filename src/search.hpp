@@ -18,27 +18,28 @@ class Search
 
     std::array<std::array<ExtMove, kMaxPly>, kMaxPly> pv_table_{}; // stores the move list at ply.
     std::array<int, kMaxPly> pv_length_{}; // shows how many of moves in pv are valid.
-
+    
     std::array<std::array<ExtMove, 2>, kMaxPly> killers_{}; // killer move table, 2 killer moves for ply.
     
+    uint8_t age{}; // for tt
+
     // history heurstic for non capture moves.
     std::array<std::array<std::array<MoveScore, kSquareCount>, kSquareCount>, kColorCount> history_heuristic_{};
 
-
-    uint8_t age{}; // for tt
-
-    void UpdatePv(uint8_t ply, ExtMove move);
-    void AgeHistory();
     Score QuesSearch(Score alpha, Score beta, uint8_t depth, uint8_t ply);
-
+    
     bool SearchTTMove(ExtMove tt_move, Score& alpha, Score beta, uint8_t depth, uint8_t ply, Score& best_score, ExtMove& best_move, const Status& status, Score& out);
-    bool ProbeTTCutoff(const TEntry& entry, Score alpha, Score beta, uint8_t depth, Score& out, uint8_t ply) const;
-    void UpdateQuietHeuristics(ExtMove move, uint8_t depth, uint8_t ply);
-    Score NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool nmp_flag);
-
-
-    std::pair<ExtMove, Score> NegaMaxWrapper(int depth, Score alpha, Score beta, ExtMove prev_best);
+    bool ProbeTTCutoff(const TEntry& entry, Score alpha, Score beta, uint8_t depth, Score& out, uint8_t ply) const;    
+    
+    void UpdatePv(uint8_t ply, ExtMove move);
     void BoostMoves(MoveList& current_moves, uint8_t ply);
+    void AgeHistory();
+    void UpdateHistory(ExtMove move, MoveScore bonus);
+    void UpdateKillers(ExtMove move, uint8_t depth, uint8_t ply);
+    bool SeeGe(ExtMove move, MoveScore threshold);
+
+    Score NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool nmp_flag);
+    std::pair<ExtMove, Score> NegaMaxWrapper(int depth, Score alpha, Score beta, ExtMove prev_best);
     
 public:
     std::unique_ptr<TTable> ttable_;
@@ -47,5 +48,7 @@ public:
     ExtMove FindBestMove(int64_t soft_ms, size_t depth = kMaxSearchDepth);
 
     void ResetSearch();
+
+    void PrintHistoryStats() const;
     explicit Search(Board& board, std::atomic<bool>& stop_flag);
 };

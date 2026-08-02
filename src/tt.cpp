@@ -57,6 +57,8 @@ TEntry TTable::GetEntry(Hash hash)
 {
     size_t index = hash % kTTableSize;
 
+    node_requests++;
+
     for (auto& entry : array_[index].bucket_)
     {
         if (entry.hash_ == hash) { node_hits++; return entry; }
@@ -65,21 +67,6 @@ TEntry TTable::GetEntry(Hash hash)
     return TEntry{};
 };
 
-
-bool TTable::ProbeEntry(Hash hash)
-{
-    size_t index = hash % kTTableSize;
-
-    node_requests++;
-
-    for (auto& entry : array_[index].bucket_)
-    {
-        if (entry.hash_ == hash) { node_hits++; return true; }
-    }
-
-    return false;
-};
-    
 
 void TTable::ClearTT()
 {

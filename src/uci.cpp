@@ -201,6 +201,10 @@ void UCI::CommandWorker()
         {
             ExecuteSearch(args);
         }
+        else if (cmd == "history") 
+        { 
+            searcher_.PrintHistoryStats(); 
+        }
     }
 }
 

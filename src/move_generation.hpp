@@ -99,10 +99,10 @@ inline void GeneratePawnNoisy(Board& board, MoveList& move_list, Bitboard target
         Square to_sqr = PopLsb(quiet_promo_pawns);
         auto from_sqr = static_cast<Square>(static_cast<int>(to_sqr) + from_shift);
 
-        move_list.addMove(ExtMove(Move(from_sqr, to_sqr, MoveType::kPromotion, Piece::kQueen), kPieceWorth[static_cast<size_t>(Piece::kQueen)]));
-        move_list.addMove(ExtMove(Move(from_sqr, to_sqr, MoveType::kPromotion, Piece::kRook), kPieceWorth[static_cast<size_t>(Piece::kRook)]));
-        move_list.addMove(ExtMove(Move(from_sqr, to_sqr, MoveType::kPromotion, Piece::kBishop), kPieceWorth[static_cast<size_t>(Piece::kBishop)]));
-        move_list.addMove(ExtMove(Move(from_sqr, to_sqr, MoveType::kPromotion, Piece::kKnight), kPieceWorth[static_cast<size_t>(Piece::kKnight)]));
+        move_list.addMove(ExtMove(Move(from_sqr, to_sqr, MoveType::kPromotion, Piece::kQueen), kPieceMoveWorth[static_cast<size_t>(Piece::kQueen)]));
+        move_list.addMove(ExtMove(Move(from_sqr, to_sqr, MoveType::kPromotion, Piece::kRook), kPieceMoveWorth[static_cast<size_t>(Piece::kRook)]));
+        move_list.addMove(ExtMove(Move(from_sqr, to_sqr, MoveType::kPromotion, Piece::kBishop), kPieceMoveWorth[static_cast<size_t>(Piece::kBishop)]));
+        move_list.addMove(ExtMove(Move(from_sqr, to_sqr, MoveType::kPromotion, Piece::kKnight), kPieceMoveWorth[static_cast<size_t>(Piece::kKnight)]));
     }
 
     // should work without any target
@@ -140,7 +140,7 @@ inline void GenerateForPiece(Board& board, MoveList& move_list, Bitboard occ, Co
     while (piece_spots != 0)
     {
         Square from_sqr = PopLsb(piece_spots);
-        Bitboard piece_moves = attacks::getPieceAttack<piece>(occ, from_sqr, ally_color) & target;
+        Bitboard piece_moves = attacks::GetPieceAttack<piece>(occ, from_sqr, ally_color) & target;
 
         if constexpr (gen_type == GenType::kNoisy || gen_type == GenType::kAll)
         {

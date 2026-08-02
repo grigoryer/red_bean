@@ -86,3 +86,37 @@ Games: 514, Wins: 214, Losses: 126, Draws: 174, Points: 301.0 (58.56 %)
 Ptnml(0-2): [12, 43, 91, 67, 44], WL/DD Ratio: 1.84
 LLR: 2.96 (100.5%) (-2.94, 2.94) [0.00, 10.00]
 --------------------------------------------------
+
+Check Extension, add depth if in check.
+--------------------------------------------------
+Results of Check vs BUG_FIXES (10+0.1, NULL, NULL, opening_book.pgn):
+Elo: 16.68 +/- 13.89, nElo: 21.00 +/- 17.45
+LOS: 99.08 %, DrawRatio: 37.84 %, PairsRatio: 1.22
+Games: 1522, Wins: 546, Losses: 473, Draws: 503, Points: 797.5 (52.40 %)
+Ptnml(0-2): [69, 144, 288, 165, 95], WL/DD Ratio: 1.97
+LLR: 2.01 (68.3%) (-2.94, 2.94) [0.00, 10.00]
+--------------------------------------------------
+
+
+SEE
+--------------------------------------------------
+Results of SEE vs Check (10+0.1, NULL, NULL, opening_book.pgn):
+Elo: 44.02 +/- 20.22, nElo: 55.84 +/- 25.34
+LOS: 100.00 %, DrawRatio: 33.80 %, PairsRatio: 1.60
+Games: 722, Wins: 285, Losses: 194, Draws: 243, Points: 406.5 (56.30 %)
+Ptnml(0-2): [20, 72, 122, 91, 56], WL/DD Ratio: 2.05
+LLR: 2.99 (101.6%) (-2.94, 2.94) [0.00, 10.00]
+--------------------------------------------------
+SPRT ([0.00, 10.00]) completed - H1 was accepted
+
+
+
+MOVE ORDERING WITH WEIGHT AND MALUSES - added weight at each search. Didnt 100% pass but it is alteast a 5+ elo increase so keep.
+--------------------------------------------------
+Results of MOUP vs SEE (10+0.1, NULL, NULL, opening_book.pgn):
+Elo: 9.82 +/- 8.61, nElo: 12.28 +/- 10.77
+LOS: 98.73 %, DrawRatio: 34.65 %, PairsRatio: 1.13
+Games: 4000, Wins: 1357, Losses: 1244, Draws: 1399, Points: 2056.5 (51.41 %)
+Ptnml(0-2): [191, 424, 693, 465, 227], WL/DD Ratio: 1.72
+LLR: 2.41 (81.8%) (-2.94, 2.94) [0.00, 10.00]
+--------------------------------------------------

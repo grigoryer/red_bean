@@ -7,6 +7,21 @@
 #include <array>
 
 
+
+inline Score ScoreToTable(Score score, uint8_t ply)
+{
+    if (score < -kMateScoreThreshold) { return score - ply; }
+    if (score >  kMateScoreThreshold) { return score + ply; }
+    return score;
+}
+
+inline Score TableToScore(Score score, uint8_t ply)
+{
+    if (score < -kMateScoreThreshold) { return score + ply; } 
+    if (score >  kMateScoreThreshold) { return score - ply; }
+    return score;
+}
+
 class TEntry
 {
 public:
@@ -38,7 +53,6 @@ public:
 
     void AddEntry(TEntry entry);
     TEntry GetEntry(Hash hash);
-    bool ProbeEntry(Hash hash);
     void ProfileTableSpread();
     void ClearTT();
 };

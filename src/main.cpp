@@ -36,16 +36,15 @@ auto TestSearchSpeed(Board board, Search& searcher)
     return elapsed;
 }
 
-
 int main() 
 {    
-    // UCI engine{};
-    // engine.Loop();
+    UCI engine{};
+    engine.Loop();
 
-    std::atomic<bool> flag;
-    Board board{kPerft2};
-    Search searcher{board, flag};
-    TestSearchSpeed(board, searcher);
+    // std::atomic<bool> flag;
+    // Board board{kPerft2};
+    // Search searcher{board, flag};
+    // TestSearchSpeed(board, searcher);
     
     return 0;
 }

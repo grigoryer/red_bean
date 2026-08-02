@@ -63,19 +63,6 @@ inline void SetPiece(Board &board, Piece piece, Square sqr, Color color, Hash& h
     hash ^= Zobrist::ZobPiece(piece, sqr, color);
 }
 
-// inline void MovePieceNoHash(Board &board, Piece piece, Square from_sqr, Color color, Square to_sqr)
-// {
-//     RemovePieceNoHash(board, piece, from_sqr, color);
-//     SetPieceNoHash(board, piece, to_sqr, color);
-// }
-
-// inline void MovePiece(Board &board, Piece piece, Square from_sqr, Color color, Square to_sqr, Hash& hash)
-// {
-//     RemovePiece(board, piece, from_sqr, color, hash);
-//     SetPiece(board, piece, to_sqr, color, hash);
-// }
-
-
 inline void MovePieceNoHash(Board &board, Piece piece, Square from_sqr, Color color, Square to_sqr)
 {
     board.MovePieceBB(piece, from_sqr, to_sqr, color);

@@ -16,7 +16,7 @@ Bitboard GetRookAttack(Bitboard occ, Square sqr);
 Bitboard GetQueenAttack(Bitboard occ, Square sqr);
 
 template<Piece piece>
-inline Bitboard getPieceAttack(Bitboard occ, Square sqr, Color color)
+inline Bitboard GetPieceAttack(Bitboard occ, Square sqr, Color color)
 {
     if constexpr (piece == Piece::kKing)
     {
@@ -65,5 +65,23 @@ inline Bitboard GetPawnAttacks(const Board& board)
 
     return pawn_attacks;
 }
+
+inline Bitboard AttacksTo(const Board& board, Square sqr, Bitboard occ)
+{
+    Bitboard attackers{};
+
+    Bitboard queens = board.GetColoredPieceBB(Color::kAll, Piece::kQueen);
+    
+    attackers |= GetPawnAttack(Color::kWhite, sqr) & board.GetColoredPieceBB(Color::kBlack, Piece::kPawn);
+    attackers |= GetPawnAttack(Color::kBlack, sqr) & board.GetColoredPieceBB(Color::kWhite, Piece::kPawn);
+
+    attackers |= GetBishopAttack(occ, sqr) & (board.GetColoredPieceBB(Color::kAll, Piece::kBishop) | queens);
+    attackers |= GetRookAttack(occ, sqr) & (board.GetColoredPieceBB(Color::kAll, Piece::kRook) | queens);
+    attackers |= GetKingAttack(sqr) & board.GetColoredPieceBB(Color::kAll, Piece::kKing);
+    attackers |= GetKnightAttack(sqr) & board.GetColoredPieceBB(Color::kAll, Piece::kKnight);
+
+    return attackers;
+}
+
 } // namespace attacks
 

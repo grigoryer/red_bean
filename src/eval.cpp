@@ -61,7 +61,7 @@ inline void EvaluateMaterialPiece(const Board& board, EvalPair& acc, int& non_pa
 
         if constexpr (piece != Piece::kPawn)
         {
-            int vision_count = BitCount(attacks::getPieceAttack<piece>(occ, sqr, color) & mobility_area);
+            int vision_count = BitCount(attacks::GetPieceAttack<piece>(occ, sqr, color) & mobility_area);
     
             acc.mg += kSign * kMG_VisionBonuses[static_cast<size_t>(piece)] * vision_count;
             acc.eg += kSign * kEG_VisionBonuses[static_cast<size_t>(piece)] * vision_count;
@@ -179,9 +179,6 @@ inline Score EvaluateMaterial(Board& board)
 
     KingSafety<Color::kWhite>(board, white_pawns, acc, (GetLsb(board.GetColoredPieceBB(Color::kWhite, Piece::kKing))), occ);
     KingSafety<Color::kBlack>(board, black_pawns, acc, (GetLsb(board.GetColoredPieceBB(Color::kBlack, Piece::kKing))), occ);
-
-    // PawnStructure<Color::kWhite>(white_pawns, acc, black_pawns);
-    // PawnStructure<Color::kBlack>(black_pawns, acc, white_pawns);
 
     const int phase = std::clamp(board.GetCurStatus().phase_num, 0, kMaxPhase);
     int score = ((acc.mg * phase) + (acc.eg * (kMaxPhase - phase))) / kMaxPhase;

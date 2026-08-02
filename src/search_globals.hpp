@@ -5,7 +5,7 @@
 #include <cstdint>
 
 using Score = int16_t;
-using MoveScore = uint16_t;
+using MoveScore = int16_t;
 
 //Main Alpha Beta
 constexpr Score kPosInf = std::numeric_limits<Score>::max() - 3000;
@@ -19,7 +19,7 @@ constexpr int kMaxPly = 64;
 constexpr size_t kMaxSearchDepth{kMaxPly};
 
 // Transposition table
-constexpr size_t kTTableSize = 1 << 21; // switch to 23 for lichess.
+constexpr size_t kTTableSize = 1 << 23; // switch to 23 for lichess.
 constexpr size_t kTBucketSize = 1 << 2;
 enum class NodeType : uint8_t
 {
@@ -31,24 +31,31 @@ enum class NodeType : uint8_t
 // Quesience Search
 constexpr uint8_t kQuesDepth = 7;
 
-// History Heuristics
-constexpr MoveScore kHistoryCeiling = 1500;
-constexpr MoveScore kHistoryMax = 1 << 14;
-static_assert(kHistoryMax + (kMaxSearchDepth * kMaxSearchDepth)
-              <= std::numeric_limits<MoveScore>::max(),
-              "history entry can overflow between aging passes");
 
-// Late Move Ordering
+// Late Move Reduction
 constexpr double kLMR_Base = 0.75;
 constexpr double kLMR_Divisor = 2.25;
 
-// Move ordering bonuses.
-constexpr std::array<MoveScore, kPieceCount> kPieceWorth { 900, 500, 300, 300, 100, 0 };
-constexpr MoveScore kCastleBoost = 900; // after all types of captures.
-constexpr MoveScore kRefutationMoveBoost = 10000;
-constexpr MoveScore kKiller1Boost = 2000;
-constexpr MoveScore kKiller2Boost = 1900;
 
+/// MOVE OREDERING
+
+// Move ordering bonuses.
+constexpr std::array<MoveScore, kPieceCount> kPieceMoveWorth { 900, 500, 300, 300, 100, 0 };
+constexpr MoveScore kRefutationMoveBoost = 10000; // if hash move boost it
+constexpr MoveScore kCastleBoost = 900; // Boost castling after all types of captures.
+constexpr MoveScore kKiller1Boost = 2000; // Killer move 1 above the weak captures of major piece taking a pawn, but not pawn takes pawn
+constexpr MoveScore kKiller2Boost = 1900; // Cjamge to 1750 1700 after test
+
+// History Heuristics
+constexpr MoveScore kHistoryMoveBoostCeiling = 1500;
+
+constexpr MoveScore kHistoryMax = 1 << 13;
+static_assert(kHistoryMax + (kMaxSearchDepth * kMaxSearchDepth) <= std::numeric_limits<MoveScore>::max(), "history entry can overflow between aging passes");
+
+// SEE
+constexpr MoveScore kBadCapturePenalty = -10000;
+
+// MVV LVA
 // [attacker][victim]
 constexpr std::array<std::array<MoveScore, kPieceCount + 1>, kPieceCount> kMoveOrderingTable
 {{  // victims: Q  R  B  N  P  K None
