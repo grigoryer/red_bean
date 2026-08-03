@@ -24,13 +24,10 @@ class Search
     uint8_t age{}; // for tt
 
     // history heurstic for non capture moves.
-    std::array<std::array<std::array<MoveScore, kSquareCount>, kSquareCount>, kColorCount> history_heuristic_{};
+    // Piece to color
+    std::array<std::array<std::array<MoveScore, kSquareCount>, kPieceCount>, kColorCount> history_heuristic_{};
 
     Score QuesSearch(Score alpha, Score beta, uint8_t depth, uint8_t ply);
-    
-    bool SearchTTMove(ExtMove tt_move, Score& alpha, Score beta, uint8_t depth, uint8_t ply, Score& best_score, ExtMove& best_move, const Status& status, Score& out);
-    bool ProbeTTCutoff(const TEntry& entry, Score alpha, Score beta, uint8_t depth, Score& out, uint8_t ply) const;    
-    
     void UpdatePv(uint8_t ply, ExtMove move);
     void BoostMoves(MoveList& current_moves, uint8_t ply);
     void AgeHistory();

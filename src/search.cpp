@@ -49,11 +49,14 @@ void Search::UpdatePv(uint8_t ply, ExtMove move)
 
 void Search::AgeHistory()
 {
-    for (auto& by_color : history_heuristic_)
+    for (auto& side : history_heuristic_)
     {
-        for (auto& by_from : by_color)
+        for (auto& piece : side)
         {
-            for (auto& value : by_from) { value /= 2; }
+            for (auto& sqr : piece)
+            {
+                sqr /= 2; 
+            }
         }
     }
 }
@@ -80,7 +83,7 @@ void Search::BoostMoves(MoveList& current_moves, uint8_t ply)
         }
         else if (board_.GetPieceOnSquare(move.GetTo()) == Piece::kNone) // Quiet and not Killer check its history for a score.
         {
-            const MoveScore raw = history_heuristic_[static_cast<size_t>(ally_color)][static_cast<size_t>(move.GetFrom())][static_cast<size_t>(move.GetTo())];
+            const MoveScore raw = history_heuristic_[static_cast<size_t>(ally_color)][static_cast<size_t>(board_.GetPieceOnSquare(move.GetFrom()))][static_cast<size_t>(move.GetTo())];
             move.score_ += static_cast<MoveScore>((raw * kHistoryMoveBoostCeiling) / kHistoryMax);
         }
     }
@@ -256,7 +259,8 @@ Score Search::QuesSearch(Score alpha, Score beta, uint8_t depth, uint8_t ply)
 
 void Search::UpdateHistory(ExtMove move, MoveScore bonus)
 {
-    MoveScore& entry = history_heuristic_[static_cast<size_t>(board_.GetCurStatus().cur_color_)][static_cast<size_t>(move.GetFrom())][static_cast<size_t>(move.GetTo())];
+    MoveScore& entry = history_heuristic_[static_cast<size_t>(board_.GetCurStatus().cur_color_)][static_cast<size_t>(board_.GetPieceOnSquare(move.GetFrom()))][static_cast<size_t>(move.GetTo())]; // piece and to.
+
     entry += bonus - entry * std::abs(bonus) / kHistoryMax; // age history 
 }
 
@@ -737,11 +741,11 @@ void Search::PrintHistoryStats() const
 
     for (size_t c{}; c < kColorCount; ++c)
     {
-        for (size_t f{}; f < kSquareCount; ++f)
+        for (size_t p{}; p < kPieceCount; ++p)
         {
             for (size_t t{}; t < kSquareCount; ++t)
             {
-                const MoveScore raw = history_heuristic_[c][f][t];
+                const MoveScore raw = history_heuristic_[c][p][t];
                 if (raw == 0) { continue; }
 
                 nonzero++;

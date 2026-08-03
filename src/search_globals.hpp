@@ -25,7 +25,7 @@ constexpr size_t kMinHashMB = 1;
 constexpr size_t kMaxHashMB = 1024;
 
 
-constexpr size_t kTBucketSize = 128 / 16; // cache line size / Tentry size
+constexpr size_t kTBucketSize = 4; // prev was cache line size / Tentry size, changed back to 4 since change didnt push sprt 
 enum class NodeType : uint8_t
 {
     EXACT,
