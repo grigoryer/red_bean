@@ -18,9 +18,14 @@ constexpr Score kDrawScore = -50;
 constexpr int kMaxPly = 64;
 constexpr size_t kMaxSearchDepth{kMaxPly};
 
-// Transposition table
-constexpr size_t kTTableSize = 1 << 23; // switch to 23 for lichess. Create hash option on uci to not do this.
-constexpr size_t kTBucketSize = 1 << 2;
+// Transposition table 
+// Default sizing.
+constexpr size_t kDefaultHashMB = 128;
+constexpr size_t kMinHashMB = 1;
+constexpr size_t kMaxHashMB = 1024;
+
+
+constexpr size_t kTBucketSize = 128 / 16; // cache line size / Tentry size
 enum class NodeType : uint8_t
 {
     EXACT,

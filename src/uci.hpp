@@ -43,6 +43,7 @@ class UCI
     std::queue<std::string> cmd_queue;
     std::mutex queue_mutex;
 
+    void SetOption(const std::string& args);
     void SetPosition(const std::string& input);
     void ExecuteSearch(const std::string& args);
 

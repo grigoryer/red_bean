@@ -5,8 +5,7 @@
 #include "global.hpp"
 #include "search_globals.hpp"
 #include <array>
-
-
+#include <vector>
 
 inline Score ScoreToTable(Score score, uint8_t ply)
 {
@@ -36,7 +35,7 @@ public:
     TEntry(Hash hash, Score score, Move refutation_move, uint8_t depth, NodeType type, uint8_t age);
 };
 
-class TBucket
+class alignas(sizeof(TEntry) * kTBucketSize) TBucket
 {
 public:
     std::array<TEntry, kTBucketSize> bucket_;
@@ -45,14 +44,26 @@ public:
 
 class TTable
 {
-    std::array<TBucket, kTTableSize> array_;
+    std::vector<TBucket> array_;
+    size_t bucket_mask_{};   // count - 1; the count is always a power of two
 
+    
 public:
     uint64_t node_hits{0};
     uint64_t node_requests{0};
+
+    explicit TTable(size_t mb = kDefaultHashMB) { Resize(mb); }
+
+    void Resize(size_t mb);
 
     void AddEntry(TEntry entry);
     TEntry GetEntry(Hash hash);
     void ProfileTableSpread();
     void ClearTT();
+
+
+    void PrefetchEntry(Hash hash) const
+    {
+        __builtin_prefetch(&array_[hash & bucket_mask_]);
+    }
 };

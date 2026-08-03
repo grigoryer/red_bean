@@ -451,6 +451,7 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool 
         
         moving::MakeMove(board_, move);
 
+        ttable_->PrefetchEntry(board_.GetCurStatus().hash_); // prefech entry
         nodes_searched++;
         
 
@@ -580,7 +581,8 @@ std::pair<ExtMove, Score> Search::NegaMaxWrapper(int depth, Score alpha, Score b
         PickNextMove(possible_moves, i);
         ExtMove move = possible_moves.list[i];
         moving::MakeMove(board_, move);
-    
+        ttable_->PrefetchEntry(board_.GetCurStatus().hash_); // prefech entry
+
         // pvs
         Score score{};
         if (!best_score_set)  // If no previous bounds then just do a full search.
@@ -634,7 +636,7 @@ ExtMove Search::FindBestMove(int64_t soft_ms, size_t depth)
     int64_t prev_iter_time = 0;
 
     AgeHistory();
-    for (int i{1}; i <= depth; i++)
+    for (int i{1}; i <= static_cast<int>(depth); i++)
     {
         auto iter_start = std::chrono::high_resolution_clock::now();
         Score delta = 25; // 1/4 of the pawn worth

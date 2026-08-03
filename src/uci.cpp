@@ -115,20 +115,54 @@ void UCI::ExecuteSearch(const std::string& args)
     int64_t winc = 100;
     int64_t binc = 100;
 
+    int64_t movetime{};      // 0 when absent
+    int64_t depth_arg{};     // 0 when absent
+    bool infinite{};
+    bool has_clock{};        // did the GUI give us a clock at all?
+
     while (stream >> token)
     {
-        if (token == "wtime") { stream >> wtime; }
-        else if (token == "btime") { stream >> btime; }
-        else if (token == "winc") { stream >> winc; }
-        else if (token == "binc") { stream >> binc; }
+        if (token == "wtime") { stream >> wtime; has_clock = true; }
+        else if (token == "btime") { stream >> btime; has_clock = true; }
+        else if (token == "winc") { stream >> winc; has_clock = true; }
+        else if (token == "binc") { stream >> binc; has_clock = true; }
+        else if (token == "movetime") { stream >> movetime; }
+        else if (token == "depth") { stream >> depth_arg; }
+        else if (token == "infinite") { infinite = true; }
     }
 
-    int64_t my_time = (board_.GetCurStatus().cur_color_ == Color::kWhite) ? wtime : btime;
-    int64_t my_inc  = (board_.GetCurStatus().cur_color_ == Color::kWhite) ? winc  : binc;
+    size_t max_depth = (depth_arg > 0)
+        ? std::min<size_t>(static_cast<size_t>(depth_arg), kMaxSearchDepth)
+        : kMaxSearchDepth;
 
-    int64_t allot = (my_time / 20) + (my_inc / 2);
-    int64_t soft_ms = allot;                  
-    int64_t hard_ms = std::min<int64_t>(allot * 4, my_time / 3);
+
+    constexpr int64_t kNoTimeLimit = std::numeric_limits<int64_t>::max() / 4;
+
+    int64_t soft_ms{};
+    int64_t hard_ms{};
+
+    if (infinite || (!has_clock && movetime <= 0))
+    {
+        // "go infinite", and "go depth N" with no clock: run until done or stopped.
+        soft_ms = kNoTimeLimit;
+        hard_ms = kNoTimeLimit;
+    }
+    else if (movetime > 0)
+    {
+        // Soft == hard so the predictive break in FindBestMove stops us starting
+        // an iteration we can't finish, instead of the hard cutoff truncating one.
+        soft_ms = movetime;
+        hard_ms = movetime;
+    }
+    else
+    {
+        int64_t my_time = (board_.GetCurStatus().cur_color_ == Color::kWhite) ? wtime : btime;
+        int64_t my_inc  = (board_.GetCurStatus().cur_color_ == Color::kWhite) ? winc  : binc;
+
+        int64_t allot = (my_time / 20) + (my_inc / 2);
+        soft_ms = allot;
+        hard_ms = std::min<int64_t>(allot * 4, my_time / 3);
+    }
 
     stop_flag = false;
     bool search_done = false;
@@ -136,7 +170,7 @@ void UCI::ExecuteSearch(const std::string& args)
     ExtMove best_move{};
     std::thread search_thread([&]
     {
-        ExtMove result = searcher_.FindBestMove(soft_ms); // search forever.
+        ExtMove result = searcher_.FindBestMove(soft_ms, max_depth);
         {
             std::lock_guard<std::mutex> lock(board_mutex);
             best_move = result;
@@ -147,8 +181,15 @@ void UCI::ExecuteSearch(const std::string& args)
 
     {
         std::unique_lock<std::mutex> lock(board_mutex);
-        search_cv.wait_for(lock, std::chrono::milliseconds(hard_ms),
-                            [&] { return search_done; });
+        if (hard_ms >= kNoTimeLimit)
+        {
+            search_cv.wait(lock, [&] { return search_done; });
+        }
+        else
+        {
+            search_cv.wait_for(lock, std::chrono::milliseconds(hard_ms),
+                                [&] { return search_done; });
+        }
     }
 
     // Whether we woke from the timeout or from the search finishing, cutting it off is safe.
@@ -183,6 +224,10 @@ void UCI::CommandWorker()
             std::cout << "id name coffee_chess_engine\n"
                       << "id author Grisha\n"
                       << "uciok\n";
+        }
+        else if (cmd == "setoption")
+        {
+            SetOption(args);
         }
         else if (cmd == "isready")
         {
@@ -241,4 +286,35 @@ void UCI::Loop()
     }
     queue_cv.notify_one();
     cmd_thread.join();
+}
+
+
+void UCI::SetOption(const std::string& args)
+{
+    std::istringstream stream(args);
+    std::string token;
+    std::string name;
+    std::string value;
+
+    if (!(stream >> token) || token != "name") { return; }
+
+    // Names may contain spaces, so everything up to "value" is the name.
+    while (stream >> token && token != "value")
+    {
+        if (!name.empty()) { name += ' '; }
+        name += token;
+    }
+    while (stream >> token)
+    {
+        if (!value.empty()) { value += ' '; }
+        value += token;
+    }
+
+    for (char& c : name) { c = static_cast<char>(std::tolower(static_cast<unsigned char>(c))); }
+
+    if (name == "hash")
+    {
+        try { searcher_.ttable_->Resize(std::stoul(value)); }
+        catch (const std::exception&) { }   // malformed value: keep the current size
+    }
 }

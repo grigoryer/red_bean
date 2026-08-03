@@ -1,8 +1,12 @@
 #include "tt.hpp"
 #include "search_globals.hpp"
 #include <cstdint>
-#include <iostream>
 #include <limits>
+#include <algorithm>
+
+#if defined(__APPLE__)
+#include <malloc/malloc.h>
+#endif
 
 TEntry::TEntry(Hash hash, Score score, Move refutation_move, uint8_t depth, NodeType type, uint8_t age)
     : hash_(hash),
@@ -13,10 +17,31 @@ TEntry::TEntry(Hash hash, Score score, Move refutation_move, uint8_t depth, Node
       age_(age % 256)
 { }
 
+void TTable::Resize(size_t mb)
+{
+    mb = std::clamp(mb, kMinHashMB, kMaxHashMB);
+
+    // Largest power-of-two bucket count that fits the request, so indexing
+    // stays a mask. Rounding down means we never exceed what was asked for.
+    size_t buckets = 1;
+    while ((buckets * 2 * sizeof(TBucket)) <= (mb * 1024 * 1024)) { buckets *= 2; }
+
+    std::vector<TBucket>().swap(array_);
+
+    #if defined(__APPLE__) // free up on mac
+        malloc_zone_pressure_relief(nullptr, 0);
+    #endif
+        
+    array_.resize(buckets);   // single allocation, value-initialised to hash_ == 0
+    bucket_mask_ = buckets - 1;
+
+    node_hits = 0;
+    node_requests = 0;
+}
 
 void TTable::AddEntry(TEntry entry)
 {
-    size_t index = entry.hash_ % kTTableSize;
+    size_t index = entry.hash_ & bucket_mask_;
     auto* bucket_itr = array_[index].bucket_.begin();
     auto* worst_entry = bucket_itr;
     uint8_t worst_age = std::numeric_limits<uint8_t>::max();
@@ -53,9 +78,10 @@ void TTable::AddEntry(TEntry entry)
     *worst_entry = entry;
 }
 
+
 TEntry TTable::GetEntry(Hash hash)
 {
-    size_t index = hash % kTTableSize;
+    size_t index = hash & bucket_mask_;;
 
     node_requests++;
 
@@ -70,49 +96,7 @@ TEntry TTable::GetEntry(Hash hash)
 
 void TTable::ClearTT()
 {
-    for (auto& bucket : array_)
-    {
-        int filled{};
-        for (auto& entry : bucket.bucket_)
-        {
-            entry = TEntry();
-        }
-    }
-}
-
-
-void TTable::ProfileTableSpread()
-{
-    uint64_t non_null_entries{};
-    uint64_t histogram[kTBucketSize + 1]{};  // indices 0..kBucketSize
-
-    for (auto& bucket : array_)
-    {
-        int filled{};
-        for (const auto& entry : bucket.bucket_)
-        {
-            if (entry.hash_ != 0)
-            {
-                ++non_null_entries;
-                ++filled;
-            }
-        }
-        ++histogram[filled];
-    }
-
-    const uint64_t total_slots = static_cast<uint64_t>(kTTableSize) * kTBucketSize;
-    const double   fill_factor = 100 * static_cast<double>(non_null_entries) / total_slots;
-
-    std::cout << "\nFill Factor:            " << fill_factor
-              << "\nNon Null Entries:       " << non_null_entries
-              << "\nHitRate: " << static_cast<double>(node_hits)/static_cast<double>(node_requests)
-              << "\n--- Bucket Occupancy Histogram ---";
-
-    for (size_t i = 0; i <= kTBucketSize; ++i)
-    {
-        const double pct = static_cast<double>(histogram[i]) / kTTableSize * 100.0;
-        std::cout << "\n  " << i << " filled: " << histogram[i]
-                  << " buckets (" << pct << "%)";
-    }
-    std::cout << std::endl;
+    std::fill(array_.begin(), array_.end(), TBucket{});
+    node_hits = 0;
+    node_requests = 0;
 }
