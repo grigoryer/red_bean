@@ -149,3 +149,15 @@ Ptnml(0-2): [20, 81, 128, 107, 51], WL/DD Ratio: 1.06
 LLR: 2.95 (100.1%) (-2.94, 2.94) [0.00, 10.00]
 --------------------------------------------------
 SPRT ([0.00, 10.00]) completed - H1 was accepted
+
+
+Late Move Prunning 
+--------------------------------------------------
+Results of LMP vs Futile (10+0.1, NULL, NULL, opening_book.pgn):
+Elo: 36.45 +/- 18.38, nElo: 44.69 +/- 22.35
+LOS: 100.00 %, DrawRatio: 35.34 %, PairsRatio: 1.54
+Games: 928, Wins: 351, Losses: 254, Draws: 323, Points: 512.5 (55.23 %)
+Ptnml(0-2): [39, 79, 164, 110, 72], WL/DD Ratio: 1.45
+LLR: 3.00 (101.8%) (-2.94, 2.94) [0.00, 10.00]
+--------------------------------------------------
+SPRT ([0.00, 10.00]) completed - H1 was accepted

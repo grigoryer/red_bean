@@ -31,16 +31,17 @@ enum class NodeType : uint8_t
 // Quesience Search
 constexpr uint8_t kQuesDepth = 7;
 
-
 // Late Move Reduction
 constexpr double kLMR_Base = 0.75;
 constexpr double kLMR_Divisor = 2.25;
 
+// Late Move Pruning
+constexpr uint8_t kLMP_MaxDepth = 6;
+constexpr int kLMP_Base = 3;
 
 // Reverse Futlity Prunning
 constexpr uint8_t kRFP_MaxDepth = 6; // depth and which we can check for rfp, if our remaining depth is too high we cant trust it 100%.
 constexpr Score kRFP_Margin = 80; // for how deep we prune we increase the margin, so depth * margin. 
-
 
 // Futility Prunning
 constexpr Score kFutilityMargin = 100;

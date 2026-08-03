@@ -170,60 +170,6 @@ void PickNextMove(MoveList& current_moves, size_t cur_index)
     std::swap(current_moves.list[cur_index], current_moves.list[best_move]);
 }
 
-// the three TT bound checks. True => caller returns `out`.
-bool Search::ProbeTTCutoff(const TEntry& entry, Score alpha, Score beta, uint8_t depth, Score& out, uint8_t ply) const
-{
-    // if ((beta - alpha) > 1) { return false; } 
-    if (entry.depth_ >= depth)
-    {
-        Score tt_score = TableToScore(entry.score_, ply);
-        // Exact means this value was evaluated completely inside the tree (no cutoffs), so no need to search it again.
-        if (entry.type_ == NodeType::EXACT) { out = tt_score; return true; }
-
-        // Fail low or the upper bound of that branch. Any move in this branch did not exceed alpha so if the saved
-        // score of this move is less than current alpha we dont need to search again.
-        if (entry.type_ == NodeType::UPPER && tt_score <= alpha) { out = tt_score; return true; }
-
-        // Fail high or the lower bound for that branch. Previously this move was at least this score, it could be
-        // more. So if it exceeds our current beta same thing will happen so we can return early.
-        if (entry.type_ == NodeType::LOWER && tt_score >= beta) { out = tt_score; return true; }
-    }
-    return false;
-}
-
-bool Search::SearchTTMove(ExtMove tt_move, Score& alpha, Score beta, uint8_t depth, uint8_t ply, Score& best_score, ExtMove& best_move, const Status& status, Score& out)
-{
-    moving::MakeMove(board_, tt_move);
-    Score tt_move_score = -NegaMax(-beta, -alpha, depth - 1, ply + 1, false);
-
-    moving::UndoMove(board_, tt_move);
-
-    // current score exceeded the acceptable threshhold of the opposing player, so no need to search rest of branch.
-    if (tt_move_score >= beta && !stop_flag_)
-    {
-        // if tt move is quiet then update its history as well.
-        if ((tt_move.GetType() == MoveType::kNormal) && (board_.GetPieceOnSquare(tt_move.GetTo()) == Piece::kNone))
-        {
-            UpdateKillers(tt_move, depth, ply);
-            UpdateHistory(tt_move, std::clamp<MoveScore>(static_cast<MoveScore>(depth * depth), -kHistoryMax, kHistoryMax));
-        }
-
-        ttable_->AddEntry({board_.GetCurStatus().hash_, ScoreToTable(tt_move_score, ply), tt_move, depth, NodeType::LOWER, age});
-        out = tt_move_score;
-        return true;
-    }
-    // if score is now exceeding alpha this is a new high score, adjust alpha and also update the pv
-    best_score = tt_move_score;
-    best_move  = tt_move;
-    if (tt_move_score > alpha)
-    {
-        alpha = tt_move_score;
-        UpdatePv(ply, tt_move);
-    }
-    
-    return false;
-}
-
 Score Search::QuesSearch(Score alpha, Score beta, uint8_t depth, uint8_t ply)
 {
     // check for draw 50 moves or 3 fold and return 0.
@@ -327,7 +273,6 @@ void Search::UpdateKillers(ExtMove move, uint8_t depth, uint8_t ply)
     }
 }
 
-
 // Min and max player are combined into one, where alpha is equal to the current players score and beta is equal to the opposing player score.
 // Alpha will be better if it is greater than the opposing player, so for black we need to flip the evaluation * -1.
 // So greater score will be better no matter color.
@@ -347,19 +292,29 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool 
     auto& status = board_.GetCurStatus();
     Color enemy_color = GetEnemyColor(status.cur_color_);
     between::SetCheckersAndBlockers(board_, status); // set checker blockers for each position.
-    
     bool is_check = board_.IsCheck();
+    
     if (is_check) { depth++; }
 
+
     // TT based cutoff
-    TEntry probe_entry = ttable_->GetEntry(status.hash_);
-    bool tt_entry_exists = probe_entry.hash_ != 0; 
-    
-    if (tt_entry_exists) // prove for cutoff.
-    {
-        Score cutoff{};
-        if (ProbeTTCutoff(probe_entry, alpha, beta, depth, cutoff, ply)) { return cutoff; } // Check if we can pprune based on tt entry aka PV of this position. If cutoff then return prune this branch.
+    TEntry tt_entry = ttable_->GetEntry(status.hash_);
+    bool tt_entry_exists = tt_entry.hash_ != 0; 
+    if (tt_entry_exists && tt_entry.depth_ >= depth ) // prove for cutoff.
+    {  
+        Score tt_score = TableToScore(tt_entry.score_, ply);
+        // Exact means this value was evaluated completely inside the tree (no cutoffs), so no need to search it again.
+        if (tt_entry.type_ == NodeType::EXACT) { return TableToScore(tt_entry.score_, ply); }
+
+        // Fail low or the upper bound of that branch. Any move in this branch did not exceed alpha so if the saved
+        // score of this move is less than current alpha we dont need to search again.
+        if (tt_entry.type_ == NodeType::UPPER && tt_score <= alpha) { return TableToScore(tt_entry.score_, ply);  }
+
+        // Fail high or the lower bound for that branch. Previously this move was at least this score, it could be
+        // more. So if it exceeds our current beta same thing will happen so we can return early.
+        if (tt_entry.type_ == NodeType::LOWER && tt_score >= beta) { return TableToScore(tt_entry.score_, ply);  }
     }
+
 
     Score static_eval{kNegInf};
     // Reverse futlity prunning, if currently not in check and static eval is above beta + margin, not pv node, and not in mate threshold (then it doesnt matter). We can prune.
@@ -374,17 +329,19 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool 
         }
     }
 
+
     // Null Move Prunning. Only apply, when depth is relevant, not in check, cur side has a non pawn piece, previous move was not null move and also only on non pv nodes.
     {
         if (depth >= 5 && !is_check && !nmp_flag && (beta <= alpha + 1)
                 && ((board_.GetColorBB(status.cur_color_) & ~board_.GetColoredPieceBB(status.cur_color_, Piece::kPawn) & ~board_.GetColoredPieceBB(status.cur_color_, Piece::kKing)) != 0))
         {        
             constexpr int npr_reduction = 3; // can be dynamically adjusted later
+            
             moving::MakeNullMove(board_); // make the null move
             between::SetCheckersAndBlockers(board_, board_.GetCurStatus()); // reset checker blockers for now.
             Score nmp_score = -NegaMax(-beta, -beta + 1, depth - 1 - npr_reduction, ply + 1, true);
             moving::UndoNullMove(board_);
-
+            
             if (nmp_score >= beta)
             {
                 if (std::abs(nmp_score) > kMateScoreThreshold) { nmp_score = beta; }
@@ -393,18 +350,45 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool 
         }
     }
 
+
     // TT Move check
     if (tt_entry_exists)
     {
-        Score cutoff{};
         // If no prune but still entry, check the stored move first, returns true if causes a beta cutoff. Else updates alpha/best_score and best_move.
-        auto tt_move = static_cast<ExtMove>(probe_entry.refutation_move_);
-        if (generation::legal::IsStoredMoveLegal(board_, tt_move)) // check for legality before moving on.
+        auto tt_move = static_cast<ExtMove>(tt_entry.refutation_move_);
+        if (generation::legal::IsStoredMoveLegal(board_, tt_move)) 
         {
-            if (SearchTTMove(tt_move, alpha, beta, depth, ply, best_score, best_move, status, cutoff)) { return cutoff; }
+            moving::MakeMove(board_, tt_move);
+            Score tt_move_score = -NegaMax(-beta, -alpha, depth - 1, ply + 1, false);
+            moving::UndoMove(board_, tt_move);
+
+            // current score exceeded the acceptable threshhold of the opposing player, so no need to search rest of branch.
+            if (tt_move_score >= beta && !stop_flag_)
+            {
+                // if tt move is quiet then update its history as well.
+                if ((tt_move.GetType() == MoveType::kNormal) && (board_.GetPieceOnSquare(tt_move.GetTo()) == Piece::kNone))
+                {
+                    UpdateKillers(tt_move, depth, ply);
+                    UpdateHistory(tt_move, std::clamp<MoveScore>(static_cast<MoveScore>(depth * depth), -kHistoryMax, kHistoryMax));
+                }
+    
+                ttable_->AddEntry({board_.GetCurStatus().hash_, ScoreToTable(tt_move_score, ply), tt_move, depth, NodeType::LOWER, age});
+                return tt_move_score;
+            }
+
+            // if score is now exceeding alpha this is a new high score, adjust alpha and also update the pv
+            best_score = tt_move_score;
+            best_move  = tt_move;
             best_score_set = true;
+            if (tt_move_score > alpha)
+            {
+                alpha = tt_move_score;
+                UpdatePv(ply, tt_move);
+            }
         }
     }
+
+
 
     // stop flag check, can do every node since it is atomic check.
     if (stop_flag_) { return 0; }
@@ -421,6 +405,7 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool 
     std::array<ExtMove, 64> searched_quiets{};
     size_t searched_quiet_count{};
 
+    // Run through all the moves
     for (size_t i{}; i < possible_moves.move_count; ++i)
     {
         PickNextMove(possible_moves, i);
@@ -430,9 +415,9 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool 
         
         legal_move_count++;
 
-        if (tt_entry_exists && (move == probe_entry.refutation_move_)) { continue; }
+        // Skip the tt move we already searched.
+        if (tt_entry_exists && (move == tt_entry.refutation_move_)) { continue; }
 
-        
         bool is_quiet = (move.GetType() == MoveType::kNormal) && (board_.GetPieceOnSquare(move.GetTo()) == Piece::kNone);
         
         // Futility Prunning 
@@ -446,8 +431,26 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool 
                 continue;
             }
         }
+
+
+        // Late Move Prunning
+        // Moves beyond a certain threhsold in list are skipped entirely.
+        // Prereq is that it cant be pv, is quiet, no check, and only searched
+        // At lower depths. 
+        {
+            if (best_score_set && is_quiet && !is_check && (beta <= alpha + 1) && depth <= kLMP_MaxDepth && best_score > -kMateScoreThreshold)
+            {
+                // actual decision maker since legal_move count controls how many moves we are into list.
+                if (legal_move_count >= static_cast<size_t>(kLMP_Base + (depth * depth))) 
+                {
+                    continue;
+                }
+            }
+        }
         
-        moving::MakeMove(board_, move);    
+        
+        moving::MakeMove(board_, move);
+
         nodes_searched++;
         
 
@@ -702,10 +705,10 @@ ExtMove Search::FindBestMove(int64_t soft_ms, size_t depth)
 };
 
 
-
 void Search::ResetSearch()
 {
     history_heuristic_ = {};
+    killers_ = {};
     pv_table_ = {};
     pv_length_ = {};
     killers_ = {};

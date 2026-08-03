@@ -303,3 +303,15 @@ Futility Prunning
     Nodes 23328
 
     Notes: Same as RFP, the depth is hit at 3 so we are hitting it more often than not.
+
+
+Late Move Prunning
+
+    info depth 1 score cp 71 nodes 399 nps 0 time 0 pv e2a6
+    info depth 2 score cp 80 nodes 800 nps 800000 time 1 pv e2a6 b4c3
+    info depth 3 score cp 35 nodes 2282 nps 1141000 time 2 pv d5e6 b4c3 e6f7
+    info depth 4 score cp 35 nodes 2345 nps 469000 time 5 pv d5e6 b4c3 e6f7 e8d8 d2c3
+    info depth 5 score cp 24 nodes 6042 nps 671333 time 9 pv e2a6 b4c3 d2c3 e6d5 e4d5
+    info depth 6 score cp -6 nodes 16155 nps 850263 time 19 pv e2a6 e6d5 a6b7 b4c3 d2c3 d5e4
+
+    Nodes 16155
