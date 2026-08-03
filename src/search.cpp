@@ -110,12 +110,12 @@ void Search::BoostMoves(MoveList& current_moves, uint8_t ply)
             const auto to_sqr = static_cast<size_t>(move.GetTo());
 
             // need to move to int32_t since we are adding 3 moves.
-            int32_t raw = history_heuristic_[static_cast<size_t>(ally_color)][piece][to_sqr]; // raw history.
-            if (cont1 != nullptr) { raw += (*cont1)[piece][to_sqr]; } // 1 ply back boost
-            if (cont2 != nullptr) { raw += (*cont2)[piece][to_sqr]; } // 2 ply back boost
+            int32_t raw = history_heuristic_[static_cast<size_t>(ally_color)][piece][to_sqr] * kHistoryMoveBoostCeiling; // raw history.
+            if (cont1 != nullptr) { raw += ((*cont1)[piece][to_sqr] * kHistoryPly1BoostCeiling); } // 1 ply back boost
+            if (cont2 != nullptr) { raw += ((*cont2)[piece][to_sqr] * kHistoryPly2BoostCeiling); } // 2 ply back boost
 
             // rescale score into ceiling
-            move.score_ += static_cast<MoveScore>((raw * kHistoryMoveBoostCeiling) / (3 * kHistoryMax));
+            move.score_ = raw / kHistoryMax;
         }
     }
 }
@@ -471,7 +471,8 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool 
         // Skip the tt move we already searched.
         if (tt_entry_exists && (move == tt_entry.refutation_move_)) { continue; }
 
-        bool is_quiet = (move.GetType() == MoveType::kNormal) && (board_.GetPieceOnSquare(move.GetTo()) == Piece::kNone);
+        bool is_quiet = (move.GetType() == MoveType::kNormal || (move.GetType() == MoveType::kCastle)) 
+                        && (board_.GetPieceOnSquare(move.GetTo()) == Piece::kNone);
         
         // Futility Prunning 
         // At edge nodes if this node has no chance to increase alpha then prune it.

@@ -230,10 +230,6 @@ inline void GenerateKingMoves(Board& board, MoveList& move_list, size_t checker_
             Square to_sqr = PopLsb(noisy_moves);
             move_list.addMove(ExtMove(Move(from_sqr, to_sqr, MoveType::kNormal), kMoveOrderingTable[static_cast<size_t>(Piece::kKing)][static_cast<size_t>(board.GetPieceOnSquare(to_sqr))]));
         }
-        if (checker_count == 0)
-        {
-            GenerateCastling(board, move_list);
-        }
     }
 
     if constexpr (gen_type == GenType::kQuiet || gen_type == GenType::kAll)
@@ -242,6 +238,11 @@ inline void GenerateKingMoves(Board& board, MoveList& move_list, size_t checker_
         while (quiet_moves != 0)
         {
             move_list.addMove(ExtMove(Move(from_sqr, PopLsb(quiet_moves), MoveType::kNormal)));
+        }
+
+        if (checker_count == 0)
+        {
+            GenerateCastling(board, move_list);
         }
     }
 }
@@ -294,7 +295,7 @@ inline bool IsGeneratedMoveLegal(Board& board, const Status& status, const ExtMo
             // if queen side we need to check square + 1 and king side - 1;
             int castle_dir = (GetSquareCol(move.GetTo()) == Column::C ? 1 : -1);
             auto transit = static_cast<Square>(static_cast<int>(move.GetTo()) + castle_dir);
-            return (status.checking_squares_ == 0)
+            return (!board.IsCheck())
                 && !IsSquareAttacked(transit, kingless_occupancy);
         }
     }   

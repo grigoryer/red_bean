@@ -39,3 +39,13 @@ LLR: -2.95 (-100.3%) (-2.94, 2.94) [0.00, 10.00]
 --------------------------------------------------
 SPRT ([0.00, 10.00]) completed - H0 was accepted
 
+
+Continioution 2 ply History with bugs.
+--------------------------------------------------
+Results of HISTORY_CON vs CHORES (10+0.1, NULL, NULL, opening_book.pgn):
+Elo: 4.43 +/- 9.78, nElo: 5.73 +/- 12.64
+LOS: 81.27 %, DrawRatio: 36.32 %, PairsRatio: 1.10
+Games: 2902, Wins: 965, Losses: 928, Draws: 1009, Points: 1469.5 (50.64 %)
+Ptnml(0-2): [138, 303, 527, 350, 133], WL/DD Ratio: 1.96
+LLR: 0.17 (5.9%) (-2.94, 2.94) [0.00, 10.00]
+--------------------------------------------------

@@ -54,33 +54,43 @@ constexpr uint8_t kFutilityMaxDepth = 3; // depth
 
 
 /// MOVE OREDERING
+// Move             Score
+// TT MOVE          12'000
+// Good captures    11'000 -- 2'900   (all except major pieces taking pawn) 
+// killers          2'850  -- 2'750
+// Med taking pawns 2'700
+// quiets           2'625  -- -2'625
+// bad captures     -2'625 -- -14'625
+
 
 // Move ordering bonuses.
 constexpr std::array<MoveScore, kPieceCount> kPieceMoveWorth { 900, 500, 300, 300, 100, 0 };
-constexpr MoveScore kRefutationMoveBoost = 10000; // if hash move boost it
-constexpr MoveScore kCastleBoost = 900; // Boost castling after all types of captures.
-constexpr MoveScore kKiller1Boost = 2000; // Killer move 1 above the weak captures of major piece taking a pawn, but not pawn takes pawn
-constexpr MoveScore kKiller2Boost = 1900; // Cjamge to 1750 1700 after test
+constexpr MoveScore kRefutationMoveBoost = 12000; // if hash move boost it
+constexpr MoveScore kCastleBoost = 0;     // Boost castling after all types of captures.
+constexpr MoveScore kKiller1Boost = 2850;   // Killer move 1 above the weak captures of major piece taking a pawn, but not pawn takes pawn
+constexpr MoveScore kKiller2Boost = 2750;   
 
-// History Heuristics
+// History Heuristics, max queit move = 2625. add all of these together.
 constexpr MoveScore kHistoryMoveBoostCeiling = 1500;
+constexpr MoveScore kHistoryPly1BoostCeiling = kHistoryMoveBoostCeiling / 2;
+constexpr MoveScore kHistoryPly2BoostCeiling = kHistoryMoveBoostCeiling / 4;
 
+// inside range of history.
 constexpr MoveScore kHistoryMax = 1 << 13;
 static_assert(kHistoryMax + (kMaxSearchDepth * kMaxSearchDepth) <= std::numeric_limits<MoveScore>::max(), "history entry can overflow between aging passes");
 
 // SEE
-constexpr MoveScore kBadCapturePenalty = -10000;
+constexpr MoveScore kBadCapturePenalty = -12000 - (kHistoryMoveBoostCeiling + kHistoryPly1BoostCeiling + kHistoryPly2BoostCeiling);
 
 // MVV LVA
 // [attacker][victim]
 constexpr std::array<std::array<MoveScore, kPieceCount + 1>, kPieceCount> kMoveOrderingTable
 {{  // victims: Q  R  B  N  P  K None
-    { 9000, 5000, 3000, 3000, 1000, 0, 0 },  // kQueen
-    { 9400, 5400, 3400, 3400, 1400, 0, 0 },  // kRook
-    { 9600, 5600, 3600, 3600, 1600, 0, 0 },  // kBishop
-    { 9600, 5600, 3600, 3600, 1600, 0, 0 },  // kKnight
-    { 9800, 5800, 3800, 3800, 1800, 0, 0 },  // kPawn
-    { 9900, 5900, 3900, 3900, 1900, 0, 0 },  // kKing
+    { 10100, 6100, 4100, 4100, 2100, 0, 0 },  // kQueen
+    { 10500, 6500, 4500, 4500, 2500, 0, 0 },  // kRook
+    { 10700, 6700, 4700, 4700, 2700, 0, 0 },  // kBishop
+    { 10700, 6700, 4700, 4700, 2700, 0, 0 },  // kKnight
+    { 10900, 6900, 4900, 4900, 2900, 0, 0 },  // kPawn
+    { 11000, 7000, 5000, 5000, 3000, 0, 0 },  // kKing
 }};
-
 
