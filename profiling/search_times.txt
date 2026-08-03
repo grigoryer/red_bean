@@ -315,3 +315,6 @@ Late Move Prunning
     info depth 6 score cp -6 nodes 16155 nps 850263 time 19 pv e2a6 e6d5 a6b7 b4c3 d2c3 d5e4
 
     Nodes 16155
+
+
+Late move reduction refinements

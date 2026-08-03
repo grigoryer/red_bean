@@ -16,6 +16,8 @@ class Search
     Board& board_;
     std::atomic<bool>& stop_flag_;
 
+    std::array<Score, kMaxPly + kEvalStackOffset> prev_evals_ = {kNegInf}; 
+
     std::array<std::array<ExtMove, kMaxPly>, kMaxPly> pv_table_{}; // stores the move list at ply.
     std::array<int, kMaxPly> pv_length_{}; // shows how many of moves in pv are valid.
     
