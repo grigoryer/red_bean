@@ -26,6 +26,12 @@ inline int PieceValue(Piece piece)
 {
     return (piece == Piece::kNone) ? 0 : kPieceMoveWorth[static_cast<size_t>(piece)];
 }
+
+void ApplyGravity(MoveScore& entry, MoveScore bonus)
+{
+    entry += bonus - entry * std::abs(bonus) / kHistoryMax; // gravity formula
+}
+
 }
 
 
@@ -55,7 +61,21 @@ void Search::AgeHistory()
         {
             for (auto& sqr : piece)
             {
-                sqr /= 2; 
+                sqr /= 2;
+            }
+        }
+    }
+
+    for (auto& prev_piece : cont_history_)
+    {
+        for (auto& prev_to : prev_piece)
+        {
+            for (auto& piece : prev_to)
+            {
+                for (auto& sqr : piece)
+                {
+                    sqr /= 2;
+                }
             }
         }
     }
@@ -65,6 +85,9 @@ void Search::AgeHistory()
 void Search::BoostMoves(MoveList& current_moves, uint8_t ply)
 {
     Color ally_color = board_.GetCurStatus().cur_color_;
+    const ContRow* cont1 = ContHistRow(ply, 1);
+    const ContRow* cont2 = ContHistRow(ply, 2);
+
     for (size_t i{}; i < current_moves.move_count; ++i)
     {
         auto& move = current_moves.list[i];
@@ -83,8 +106,16 @@ void Search::BoostMoves(MoveList& current_moves, uint8_t ply)
         }
         else if (board_.GetPieceOnSquare(move.GetTo()) == Piece::kNone) // Quiet and not Killer check its history for a score.
         {
-            const MoveScore raw = history_heuristic_[static_cast<size_t>(ally_color)][static_cast<size_t>(board_.GetPieceOnSquare(move.GetFrom()))][static_cast<size_t>(move.GetTo())];
-            move.score_ += static_cast<MoveScore>((raw * kHistoryMoveBoostCeiling) / kHistoryMax);
+            const auto piece = static_cast<size_t>(board_.GetPieceOnSquare(move.GetFrom()));
+            const auto to_sqr = static_cast<size_t>(move.GetTo());
+
+            // need to move to int32_t since we are adding 3 moves.
+            int32_t raw = history_heuristic_[static_cast<size_t>(ally_color)][piece][to_sqr]; // raw history.
+            if (cont1 != nullptr) { raw += (*cont1)[piece][to_sqr]; } // 1 ply back boost
+            if (cont2 != nullptr) { raw += (*cont2)[piece][to_sqr]; } // 2 ply back boost
+
+            // rescale score into ceiling
+            move.score_ += static_cast<MoveScore>((raw * kHistoryMoveBoostCeiling) / (3 * kHistoryMax));
         }
     }
 }
@@ -257,11 +288,27 @@ Score Search::QuesSearch(Score alpha, Score beta, uint8_t depth, uint8_t ply)
     return best_score;
 }
 
-void Search::UpdateHistory(ExtMove move, MoveScore bonus)
+ContRow* Search::ContHistRow(uint8_t ply, uint8_t back)
 {
-    MoveScore& entry = history_heuristic_[static_cast<size_t>(board_.GetCurStatus().cur_color_)][static_cast<size_t>(board_.GetPieceOnSquare(move.GetFrom()))][static_cast<size_t>(move.GetTo())]; // piece and to.
+    if (ply < back) { return nullptr; }
+    const PieceTo& prev = move_stack_[ply - back];
+    if (prev.piece == Piece::kNone) { return nullptr; }   // root, or a null move
+    return &cont_history_[static_cast<size_t>(prev.piece)][static_cast<size_t>(prev.to)];
+}
 
-    entry += bonus - entry * std::abs(bonus) / kHistoryMax; // age history 
+
+void Search::UpdateHistory(ExtMove move, MoveScore bonus, uint8_t ply)
+{
+    const auto piece  = static_cast<size_t>(board_.GetPieceOnSquare(move.GetFrom()));
+    const auto to_sqr = static_cast<size_t>(move.GetTo());
+
+    ApplyGravity(history_heuristic_[static_cast<size_t>(board_.GetCurStatus().cur_color_)][piece][to_sqr], bonus);
+
+    ContRow* cont1 = ContHistRow(ply, 1);
+    ContRow* cont2 = ContHistRow(ply, 2);
+
+    if (cont1 != nullptr) { ApplyGravity((*cont1)[piece][to_sqr], bonus); }
+    if (cont2 != nullptr) { ApplyGravity((*cont2)[piece][to_sqr], bonus); }
 }
 
 void Search::UpdateKillers(ExtMove move, uint8_t depth, uint8_t ply)
@@ -341,6 +388,7 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool 
         {        
             constexpr int npr_reduction = 3; // can be dynamically adjusted later
             
+            move_stack_[ply] = {Piece::kNone, Square{}};
             moving::MakeNullMove(board_); // make the null move
             between::SetCheckersAndBlockers(board_, board_.GetCurStatus()); // reset checker blockers for now.
             Score nmp_score = -NegaMax(-beta, -beta + 1, depth - 1 - npr_reduction, ply + 1, true);
@@ -362,6 +410,7 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool 
         auto tt_move = static_cast<ExtMove>(tt_entry.refutation_move_);
         if (generation::legal::IsStoredMoveLegal(board_, tt_move)) 
         {
+            move_stack_[ply] = {board_.GetPieceOnSquare(tt_move.GetFrom()), tt_move.GetTo()};
             moving::MakeMove(board_, tt_move);
             Score tt_move_score = -NegaMax(-beta, -alpha, depth - 1, ply + 1, false);
             moving::UndoMove(board_, tt_move);
@@ -373,7 +422,7 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool 
                 if ((tt_move.GetType() == MoveType::kNormal) && (board_.GetPieceOnSquare(tt_move.GetTo()) == Piece::kNone))
                 {
                     UpdateKillers(tt_move, depth, ply);
-                    UpdateHistory(tt_move, std::clamp<MoveScore>(static_cast<MoveScore>(depth * depth), -kHistoryMax, kHistoryMax));
+                    UpdateHistory(tt_move, std::clamp<MoveScore>(static_cast<MoveScore>(depth * depth), -kHistoryMax, kHistoryMax), ply);
                 }
     
                 ttable_->AddEntry({board_.GetCurStatus().hash_, ScoreToTable(tt_move_score, ply), tt_move, depth, NodeType::LOWER, age});
@@ -452,7 +501,7 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool 
             }
         }
         
-        
+        move_stack_[ply] = {board_.GetPieceOnSquare(move.GetFrom()), move.GetTo()};
         moving::MakeMove(board_, move);
 
         ttable_->PrefetchEntry(board_.GetCurStatus().hash_); // prefech entry
@@ -503,11 +552,11 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool 
             if (is_quiet) 
             { 
                 UpdateKillers(move, depth, ply); 
-                UpdateHistory(move, history_bonus);
+                UpdateHistory(move, history_bonus, ply);
 
                 for (size_t q{}; q < searched_quiet_count; ++q)
                 {
-                    UpdateHistory(searched_quiets[q], -history_bonus);
+                    UpdateHistory(searched_quiets[q], -history_bonus, ply);
                 }
             }
             ttable_->AddEntry({board_.GetCurStatus().hash_, ScoreToTable(score, ply), move, depth, NodeType::LOWER, age});
@@ -584,6 +633,8 @@ std::pair<ExtMove, Score> Search::NegaMaxWrapper(int depth, Score alpha, Score b
         nodes_searched++;
         PickNextMove(possible_moves, i);
         ExtMove move = possible_moves.list[i];
+        
+        move_stack_[0] = {board_.GetPieceOnSquare(move.GetFrom()), move.GetTo()};
         moving::MakeMove(board_, move);
         ttable_->PrefetchEntry(board_.GetCurStatus().hash_); // prefech entry
 
@@ -714,6 +765,7 @@ ExtMove Search::FindBestMove(int64_t soft_ms, size_t depth)
 void Search::ResetSearch()
 {
     history_heuristic_ = {};
+    cont_history_ = {};
     killers_ = {};
     pv_table_ = {};
     pv_length_ = {};

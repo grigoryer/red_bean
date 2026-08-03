@@ -9,7 +9,8 @@
 #include "eval.hpp"
 #include <cstdint>
 #include <memory>
-
+    
+using ContRow = std::array<std::array<MoveScore, kSquareCount>, kPieceCount>;
 
 class Search
 {
@@ -20,18 +21,23 @@ class Search
     std::array<int, kMaxPly> pv_length_{}; // shows how many of moves in pv are valid.
     
     std::array<std::array<ExtMove, 2>, kMaxPly> killers_{}; // killer move table, 2 killer moves for ply.
-    
+
     uint8_t age{}; // for tt
 
     // history heurstic for non capture moves.
     // Piece to color
+    struct PieceTo { Piece piece{Piece::kNone}; Square to{}; };
+    
     std::array<std::array<std::array<MoveScore, kSquareCount>, kPieceCount>, kColorCount> history_heuristic_{};
+    std::array<std::array<ContRow, kSquareCount>, kPieceCount> cont_history_{};
+    std::array<PieceTo, kMaxPly> move_stack_{};
 
     Score QuesSearch(Score alpha, Score beta, uint8_t depth, uint8_t ply);
     void UpdatePv(uint8_t ply, ExtMove move);
     void BoostMoves(MoveList& current_moves, uint8_t ply);
+    ContRow* ContHistRow(uint8_t ply, uint8_t back);
     void AgeHistory();
-    void UpdateHistory(ExtMove move, MoveScore bonus);
+    void UpdateHistory(ExtMove move, MoveScore bonus, uint8_t ply);
     void UpdateKillers(ExtMove move, uint8_t depth, uint8_t ply);
     bool SeeGe(ExtMove move, MoveScore threshold);
 
