@@ -316,7 +316,6 @@ Late Move Prunning
 
     Nodes 16155
 
-
 Foloow up history 
     info depth 1 score cp 71 nodes 399 nps 0 time 0 pv e2a6
     info depth 2 score cp 80 nodes 800 nps 800000 time 1 pv e2a6 b4c3
@@ -326,3 +325,5 @@ Foloow up history
     info depth 6 score cp -6 nodes 16072 nps 535733 time 30 pv e2a6 e6d5 a6b7 b4c3 d2c3 d5e4
 
     Nodes 16072
+
+Late move reduction refinements

@@ -33,12 +33,16 @@ enum class NodeType : uint8_t
     LOWER
 };
 
+// Improving
+constexpr int kEvalStackOffset = 10;
+
 // Quesience Search
 constexpr uint8_t kQuesDepth = 7;
 
 // Late Move Reduction
 constexpr double kLMR_Base = 0.75;
 constexpr double kLMR_Divisor = 2.25;
+constexpr int kLMR_HistReduction = 2;
 
 // Late Move Pruning
 constexpr uint8_t kLMP_MaxDepth = 6;
