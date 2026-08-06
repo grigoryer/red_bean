@@ -6,6 +6,8 @@
 
 enum class Phase : uint8_t { kMg, kEg };
 
+constexpr Score kTempoBonus = 10;
+
 constexpr Score kBishopPairBonus = 30;
 constexpr Score kKnightPairPenalty = -8;
 constexpr Score kRookPairPenalty = -20;
@@ -14,15 +16,72 @@ constexpr Score kNoPawnsPenalty = -30;
 
 constexpr int kStartNonPawnMaterial = 6200;
 
+// King Safety
+
 // Per pawn on x rows in front it. So [0] = current row and is skipped, [1] = one row in front
 constexpr int kPawnShieldRowsInfront{3}; 
 constexpr std::array<Score, kPawnShieldRowsInfront> kPawnShieldBonus = {0, 5, 2};
 
 constexpr int kPawnStormRowsInfront{5};
 constexpr std::array<Score, kPawnStormRowsInfront> kPawnStormPenalty = {0, -2, -2, -1, -1};
+
 constexpr Score kPawnShieldPenality = -7;
 
-constexpr std::array<Score, 2> kPassedPawnBonus = {20, 50};
+
+// Pawn structure
+
+// Isolated pawn: no friendly pawns on adjacent files
+constexpr std::array<Score, 2> kIsolatedPawnPenalty = { -12, -18 };  // { MG, EG }
+
+// Doubled pawn: applied per extra pawn beyond the first on a file. Worse in EG (fewer pieces to compensate).
+constexpr std::array<Score, 2> kDoubledPawnPenalty = { -10, -20 };  // { MG, EG }
+// Backward pawn: stop square lacks pawn protection and is controlled by a sentry.
+constexpr std::array<Score, 2> kBackwardPawnPenalty = { -10, -6 };  // { MG, EG }
+constexpr std::array<std::array<Score, kRowCount>, 2> kCandidatePassedPawnBonus =
+{{
+    // Middlegame
+    { 0, 3, 5, 8, 12, 16, 0, 0 },
+    // Endgame
+    { 0, 4, 8, 13, 20, 28, 0, 0 },
+}};
+
+constexpr std::array<std::array<Score, 9>, 2> kPawnIslandsPenalty =
+{{
+    // Middlegame
+    { 0, 0, -4, -10, -18, -28, -28, -28, -28 },
+    // Endgame
+    { 0, 0, -6, -16, -28, -42, -42, -42, -42 },
+}};
+
+constexpr std::array<std::array<Score, 5>, 2> kPawnMajorityBonus =
+{{
+    // Middlegame
+    { 0, 6, 10, 14, 18 },
+    // Endgame
+    { 0, 12, 20, 28, 36 },
+}};
+
+constexpr Bitboard kKingsideMask = kColumnsBitboards[static_cast<size_t>(Column::F)] | 
+                                   kColumnsBitboards[static_cast<size_t>(Column::G)] | 
+                                   kColumnsBitboards[static_cast<size_t>(Column::H)];
+
+
+constexpr Bitboard kQueensideMask = kColumnsBitboards[static_cast<size_t>(Column::A)] | 
+                                    kColumnsBitboards[static_cast<size_t>(Column::B)] | 
+                                    kColumnsBitboards[static_cast<size_t>(Column::C)] | 
+                                    kColumnsBitboards[static_cast<size_t>(Column::D)];
+
+
+constexpr std::array<std::array<Score, kRowCount>, 2> kPassedPawnBonus =
+{{
+    // Middlegame
+    { 0, 4, 7, 11, 16, 22, 30, 0 },
+    // Endgame
+    { 0, 6, 11, 18, 27, 38, 50, 0 },
+}};
+
+
+
 constexpr std::array<Score, 2> kChainPawnBonus = {5, 10};
 constexpr std::array<Score, 2> kPhalanxPawnBonus = {1, 2};
 
@@ -214,6 +273,30 @@ inline Score GetPSTScore(Square sqr)
     return kPSTs[static_cast<size_t>(phase)][static_cast<size_t>(piece)][static_cast<size_t>(sqr)];
 }
 
+constexpr std::array<std::array<Bitboard, kRowCount>, kColorCount> kRowsInfront =
+{{  
+    // white rows in front.
+    {
+        0xffffffffffffff00ULL,
+        0xffffffffffff0000ULL,
+        0xffffffffff000000ULL,
+        0xffffffff00000000ULL,
+        0xffffff0000000000ULL,
+        0xffff000000000000ULL,
+        0xff00000000000000ULL,
+        0x0ULL,
+    },
+    {
+        0x0ULL,
+        0xffULL,
+        0xffffULL,
+        0xffffffULL,
+        0xffffffffULL,
+        0xffffffffffULL,
+        0xffffffffffffULL,
+        0xffffffffffffffULL
+    }
+}}; 
 
 constexpr std::array<Bitboard, kColumnCount> kNearbyColumns = 
 {

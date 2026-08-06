@@ -161,3 +161,36 @@ Ptnml(0-2): [39, 79, 164, 110, 72], WL/DD Ratio: 1.45
 LLR: 3.00 (101.8%) (-2.94, 2.94) [0.00, 10.00]
 --------------------------------------------------
 SPRT ([0.00, 10.00]) completed - H1 was accepted
+
+
+
+
+--------------------------------------------------
+Results of lmr_hash vs HISTORY_SCORE (8+0.08, NULL, NULL, opening_book.pgn):
+Elo: 2.72 +/- 5.83, nElo: 3.41 +/- 7.31
+LOS: 81.99 %, DrawRatio: 33.73 %, PairsRatio: 1.03
+Games: 8680, Wins: 2795, Losses: 2727, Draws: 3158, Points: 4374.0 (50.39 %)
+Ptnml(0-2): [429, 987, 1464, 1007, 453], WL/DD Ratio: 1.52
+LLR: 0.41 (15.7%) (-2.59, 2.59) [0.00, 4.00]
+--------------------------------------------------
+
+
+--------------------------------------------------
+Results of rfp vs HISTORY_SCORE (8+0.08, NULL, NULL, opening_book.pgn):
+Elo: 4.96 +/- 5.78, nElo: 6.28 +/- 7.31
+LOS: 95.38 %, DrawRatio: 35.46 %, PairsRatio: 1.07
+Games: 8680, Wins: 2843, Losses: 2719, Draws: 3118, Points: 4402.0 (50.71 %)
+Ptnml(0-2): [422, 933, 1539, 991, 455], WL/DD Ratio: 1.58
+LLR: 1.23 (47.5%) (-2.59, 2.59) [0.00, 4.00]
+--------------------------------------------------
+
+Total Time: 27:25:15 (hours:minutes:seconds)
+
+--------------------------------------------------
+Results of Q__TT vs HISTORY_SCORE (8+0.08, NULL, NULL, opening_book.pgn):
+Elo: 1.52 +/- 7.30, nElo: 1.92 +/- 9.20
+LOS: 65.86 %, DrawRatio: 34.49 %, PairsRatio: 1.02
+Games: 5480, Wins: 1773, Losses: 1749, Draws: 1958, Points: 2752.0 (50.22 %)
+Ptnml(0-2): [271, 619, 945, 625, 280], WL/DD Ratio: 1.65
+LLR: -0.13 (-4.5%) (-2.94, 2.94) [0.00, 5.00]
+--------------------------------------------------

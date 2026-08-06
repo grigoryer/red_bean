@@ -119,37 +119,150 @@ inline void KingSafety(Board& board, Bitboard ally_pawns, EvalPair& acc, Square 
     if (shield_count == 0) { acc.mg += kSign * kPawnShieldPenality; }
 }
 
+inline void PawnMajority(Bitboard white_pawns, Bitboard black_pawns, EvalPair& acc)
+{
+    auto score_sector = [&](Bitboard sector_mask)
+    {
+        int white_count = static_cast<int>(BitCount(white_pawns & sector_mask));
+        int black_count = static_cast<int>(BitCount(black_pawns & sector_mask));
+        int margin = std::abs(white_count - black_count);
+        if (margin == 0) { return; }
+
+        margin = std::min(margin, 4); // clamp to table size
+        int sign = (white_count > black_count) ? 1 : -1;
+
+        acc.mg += sign * kPawnMajorityBonus[static_cast<size_t>(Phase::kMg)][static_cast<size_t>(margin)];
+        acc.eg += sign * kPawnMajorityBonus[static_cast<size_t>(Phase::kEg)][static_cast<size_t>(margin)];
+    };
+
+    score_sector(kQueensideMask);
+    score_sector(kKingsideMask);
+}
 
 template<Color color>
-inline void PawnStructure(Bitboard ally_pawns, EvalPair& acc, Bitboard enemy_pawns)
+inline void PawnIslands(Bitboard ally_pawns, EvalPair& acc)
 {
     constexpr int kSign = (color == Color::kBlack) ? -1 : 1;
+
+    int island_count = 0;
+    bool in_island = false;
+
+    for (size_t file = 0; file < kColumnCount; ++file)
+    {
+        bool file_occupied = (ally_pawns & kColumnsBitboards[file]) != 0;
+        if (file_occupied)
+        {
+            if (!in_island)
+            {
+                ++island_count;
+                in_island = true;
+            }
+        }
+        else
+        {
+            in_island = false;
+        }
+    }
+
+    if (island_count == 0) { return; } // no pawns at all, nothing to score
+
+    acc.mg += kSign * kPawnIslandsPenalty[static_cast<size_t>(Phase::kMg)][static_cast<size_t>(island_count)];
+    acc.eg += kSign * kPawnIslandsPenalty[static_cast<size_t>(Phase::kEg)][static_cast<size_t>(island_count)];
+}
+
+template<Color color>
+inline void PawnStructure(Bitboard ally_pawns, EvalPair& acc, Bitboard enemy_pawns, Bitboard enemy_pawn_attacks)
+{
+    constexpr int kSign = (color == Color::kBlack) ? -1 : 1;
+    constexpr int kRowStep = (color == Color::kBlack) ? -1 : 1;
+
     Bitboard ally_pawns_copy = ally_pawns;
+    EvalPair flat_score{};
 
     while (ally_pawns_copy)
     {
         Square sqr = PopLsb(ally_pawns_copy);
         Column col = GetSquareCol(sqr);
         Row row = GetSquareRow(sqr);
+        size_t row_idx = static_cast<size_t>(row);
+        size_t col_idx = static_cast<size_t>(col);
 
-        // add bonus for passed pawn, will give same bonus for  
-        size_t enemy_count = BitCount(enemy_pawns & kBandColumns[static_cast<size_t>(col)]);
-        if (enemy_count == 0) 
-        {
-            acc.mg += kSign * (kPassedPawnBonus[static_cast<size_t>(Phase::kMg)]);
-            acc.eg += kSign * (kPassedPawnBonus[static_cast<size_t>(Phase::kEg)]);
+        Bitboard rows_ahead = kRowsInfront[static_cast<size_t>(color)][row_idx];
+        Bitboard behind_or_level_mask = ~rows_ahead;
+        Bitboard same_file_ahead = enemy_pawns & kColumnsBitboards[col_idx] & rows_ahead;
+        Bitboard adjacent_ahead = enemy_pawns & kNearbyColumns[col_idx] & rows_ahead;
+        Bitboard ally_adjacent_files = ally_pawns & kNearbyColumns[col_idx];
+        Bitboard ally_same_file = ally_pawns & kColumnsBitboards[col_idx];
+
+        // add bonus for passed pawn, will give same bonus.
+        // Passed pawn = no enemy pawns in cur or side rows and that are infront.
+        bool passed_pawn = (same_file_ahead == 0) && (adjacent_ahead == 0);
+
+        if (passed_pawn) 
+        {   // Passed Pawn
+            size_t bonus_row = (color == Color::kBlack) ? (7 - row_idx) : row_idx;
+            flat_score.mg += kPassedPawnBonus[static_cast<size_t>(Phase::kMg)][bonus_row];
+            flat_score.eg += kPassedPawnBonus[static_cast<size_t>(Phase::kEg)][bonus_row];
         }
-        
-        // Nearby pawn structure bonuses.
-        size_t chain_count = BitCount(ally_pawns & attacks::GetPawnAttack(color, sqr));
-        
-        acc.mg += kSign * (chain_count * kChainPawnBonus[static_cast<size_t>(Phase::kMg)]);
-        acc.eg += kSign * (chain_count * kChainPawnBonus[static_cast<size_t>(Phase::kEg)]);
+        else 
+        {   // Backward Pawn Penality
+            int stop_row_idx = static_cast<int>(row_idx) + kRowStep;
+            if (stop_row_idx >= 0 && stop_row_idx <= 7)
+            {
+                Square stop_sqr = static_cast<Square>((stop_row_idx * 8) + static_cast<int>(col_idx));
+                if ((enemy_pawn_attacks & ToBitboard(stop_sqr)) != 0)
+                {
+                    if ((ally_adjacent_files & behind_or_level_mask) == 0)
+                    {
+                        flat_score.mg += kBackwardPawnPenalty[static_cast<size_t>(Phase::kMg)];
+                        flat_score.eg += kBackwardPawnPenalty[static_cast<size_t>(Phase::kEg)];
+                    }
+                }
+            }
+        }
+        // Candidate Passed pawn
+        if (!passed_pawn && same_file_ahead == 0)
+        {
+            size_t sentries = BitCount(adjacent_ahead);
+            size_t helpers = BitCount(ally_adjacent_files & behind_or_level_mask);
+            size_t bonus_row = (color == Color::kBlack) ? (7 - row_idx) : row_idx;
 
-        size_t phalanx_count = BitCount(ally_pawns & kNearbyColumns[static_cast<size_t>(col)] & ToBitboard(row));
-        acc.mg += kSign * (phalanx_count * kPhalanxPawnBonus[static_cast<size_t>(Phase::kMg)]);
-        acc.eg += kSign * (phalanx_count * kPhalanxPawnBonus[static_cast<size_t>(Phase::kEg)]);
+            if (helpers >= sentries)
+            {
+                flat_score.mg += kCandidatePassedPawnBonus[static_cast<size_t>(Phase::kMg)][bonus_row];
+                flat_score.eg += kCandidatePassedPawnBonus[static_cast<size_t>(Phase::kEg)][bonus_row];
+            }
+        }
+
+        // Nearby pawn structure bonuses and penalties
+
+        // Isolated Pawn Penality
+        if (ally_adjacent_files == 0)
+        {
+            flat_score.mg += kIsolatedPawnPenalty[static_cast<size_t>(Phase::kMg)];
+            flat_score.eg += kIsolatedPawnPenalty[static_cast<size_t>(Phase::kEg)];
+        }
+
+        // Doubled pawn penality
+        if ((ally_same_file & rows_ahead) != 0)
+        {
+            flat_score.mg += kDoubledPawnPenalty[static_cast<size_t>(Phase::kMg)];
+            flat_score.eg += kDoubledPawnPenalty[static_cast<size_t>(Phase::kEg)];
+        }
+
+        // size_t chain_count = BitCount(ally_pawns & attacks::GetPawnAttack(color, sqr));
+        // flat_score.mg += static_cast<int>(chain_count) * kChainPawnBonus[static_cast<size_t>(Phase::kMg)];
+        // flat_score.eg += static_cast<int>(chain_count) * kChainPawnBonus[static_cast<size_t>(Phase::kEg)];
+
+        // size_t phalanx_count = BitCount(ally_pawns & kNearbyColumns[col_idx] & ToBitboard(row));
+        // flat_score.mg += static_cast<int>(phalanx_count) * kPhalanxPawnBonus[static_cast<size_t>(Phase::kMg)];
+        // flat_score.eg += static_cast<int>(phalanx_count) * kPhalanxPawnBonus[static_cast<size_t>(Phase::kEg)];
     }
+
+    acc.mg += flat_score.mg * kSign;
+    acc.eg += flat_score.eg * kSign;
+
+    PawnIslands<color>(ally_pawns, acc);
 }
 
 inline Score EvaluateMaterial(Board& board)
@@ -177,8 +290,13 @@ inline Score EvaluateMaterial(Board& board)
     EvaluateMaterialPiece<Color::kBlack, Piece::kKnight>(board, acc, black_material, occ, white_pawn_attacks);
     EvaluateMaterialPiece<Color::kBlack, Piece::kPawn>(board, acc, black_material, occ, white_pawn_attacks);
 
+    PawnStructure<Color::kWhite>(white_pawns, acc, black_pawns, black_pawn_attacks);
+    PawnStructure<Color::kBlack>(black_pawns, acc, white_pawns, white_pawn_attacks);
+
     KingSafety<Color::kWhite>(board, white_pawns, acc, (GetLsb(board.GetColoredPieceBB(Color::kWhite, Piece::kKing))), occ);
     KingSafety<Color::kBlack>(board, black_pawns, acc, (GetLsb(board.GetColoredPieceBB(Color::kBlack, Piece::kKing))), occ);
+
+    //PawnMajority(white_pawns, black_pawns, acc);
 
     const int phase = std::clamp(board.GetCurStatus().phase_num, 0, kMaxPhase);
     int score = ((acc.mg * phase) + (acc.eg * (kMaxPhase - phase))) / kMaxPhase;
@@ -192,6 +310,7 @@ inline Score EvaluateMaterial(Board& board)
         score += (advantage * kTradeDownBonus * traded) / (kStartNonPawnMaterial * 100);
     }
 
+    //score += board.GetCurStatus().cur_color_ == Color::kBlack ? -kTempoBonus : kTempoBonus; // tempo
     return static_cast<Score>(score);
 }
 

@@ -49,3 +49,15 @@ Games: 2902, Wins: 965, Losses: 928, Draws: 1009, Points: 1469.5 (50.64 %)
 Ptnml(0-2): [138, 303, 527, 350, 133], WL/DD Ratio: 1.96
 LLR: 0.17 (5.9%) (-2.94, 2.94) [0.00, 10.00]
 --------------------------------------------------
+
+--------------------------------------------------
+Results of PAWNSSS vs HISTORY_SCORE (7+0.07, NULL, NULL, opening_book.pgn):
+Elo: -72.20 +/- 29.27, nElo: -85.59 +/- 33.63
+LOS: 0.00 %, DrawRatio: 34.15 %, PairsRatio: 0.48
+Games: 410, Wins: 113, Losses: 197, Draws: 100, Points: 163.0 (39.76 %)
+Ptnml(0-2): [49, 42, 70, 32, 12], WL/DD Ratio: 4.38
+LLR: -2.95 (-100.1%) (-2.94, 2.94) [0.00, 10.00]
+--------------------------------------------------
+SPRT ([0.00, 10.00]) completed - H0 was accepted
+Finished match
+Total Time: 01:12:45 (hours:minutes:seconds)
