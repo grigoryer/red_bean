@@ -24,7 +24,6 @@ constexpr size_t kDefaultHashMB = 128;
 constexpr size_t kMinHashMB = 1;
 constexpr size_t kMaxHashMB = 1024;
 
-
 constexpr size_t kTBucketSize = 4; // prev was cache line size / Tentry size, changed back to 4 since change didnt push sprt 
 enum class NodeType : uint8_t
 {
@@ -39,22 +38,46 @@ constexpr int kEvalStackOffset = 10;
 // Quesience Search
 constexpr uint8_t kQuesDepth = 7;
 
+namespace search_real
+{
+    // Late Move Reduction
+    constexpr double kLMR_Base = 0.75;
+    constexpr double kLMR_Divisor = 2.25;
+    constexpr int kLMR_HistReduction = 2;
+    
+    // Late Move Pruning
+    constexpr uint8_t kLMP_MaxDepth = 6;
+    constexpr int kLMP_Base = 3;
+    
+    // Reverse Futlity Prunning
+    constexpr uint8_t kRFP_MaxDepth = 6; // depth and which we can check for rfp, if our remaining depth is too high we cant trust it 100%.
+    constexpr Score kRFP_Margin = 80; // for how deep we prune we increase the margin, so depth * margin. 
+    
+    // Futility Prunning
+    constexpr Score kFutilityMargin = 100;
+    constexpr uint8_t kFutilityMaxDepth = 3; // depth
+}
+
+
+namespace search_spsa
+{
 // Late Move Reduction
-constexpr double kLMR_Base = 0.75;
-constexpr double kLMR_Divisor = 2.25;
-constexpr int kLMR_HistReduction = 2;
+inline double kLMR_Base = 0.75;
+inline double kLMR_Divisor = 2.25;
+inline int kLMR_HistReduction = 2;
 
 // Late Move Pruning
-constexpr uint8_t kLMP_MaxDepth = 6;
-constexpr int kLMP_Base = 3;
+inline uint8_t kLMP_MaxDepth = 6;
+inline int kLMP_Base = 3;
 
 // Reverse Futlity Prunning
-constexpr uint8_t kRFP_MaxDepth = 6; // depth and which we can check for rfp, if our remaining depth is too high we cant trust it 100%.
-constexpr Score kRFP_Margin = 80; // for how deep we prune we increase the margin, so depth * margin. 
+inline uint8_t kRFP_MaxDepth = 6; // depth and which we can check for rfp, if our remaining depth is too high we cant trust it 100%.
+inline Score kRFP_Margin = 80; // for how deep we prune we increase the margin, so depth * margin. 
 
 // Futility Prunning
-constexpr Score kFutilityMargin = 100;
-constexpr uint8_t kFutilityMaxDepth = 3; // depth
+inline Score kFutilityMargin = 100;
+inline uint8_t kFutilityMaxDepth = 3; // depth
+};
 
 
 /// MOVE OREDERING

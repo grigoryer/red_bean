@@ -1,5 +1,6 @@
 #include "uci.hpp"
 #include "debug.hpp"
+#include "eval_tuning.hpp"
 #include "global.hpp"
 #include "move.hpp"
 #include <iostream>
@@ -223,7 +224,9 @@ void UCI::CommandWorker()
         {
             std::cout << "id name coffee_chess_engine\n"
                       << "id author Grisha\n"
-                      << "uciok\n";
+                      << "option name Hash type spin default " << kDefaultHashMB << " min 1 max 4096\n";
+                      eval_tuning::PrintOptions(std::cout);
+                      std::cout << "uciok\n";
         }
         else if (cmd == "setoption")
         {
@@ -246,9 +249,14 @@ void UCI::CommandWorker()
         {
             ExecuteSearch(args);
         }
-        else if (cmd == "history") 
-        { 
-            searcher_.PrintHistoryStats(); 
+        else if (cmd == "history")
+        {
+            searcher_.PrintHistoryStats();
+        }
+        else if (cmd == "spsa")
+        {
+            // Not UCI: dumps the weather-factory config for the eval tunables.
+            eval_tuning::PrintSpsaConfig(std::cout);
         }
     }
 }
@@ -316,5 +324,10 @@ void UCI::SetOption(const std::string& args)
     {
         try { searcher_.ttable_->Resize(std::stoul(value)); }
         catch (const std::exception&) { }   // malformed value: keep the current size
+        return;
     }
+
+    // Eval tunables. Unknown names fall through and are ignored, as UCI expects.
+    try { eval_tuning::SetParam(name, std::stoi(value)); }
+    catch (const std::exception&) { }   // malformed value: keep the current weight
 }

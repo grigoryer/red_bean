@@ -20,6 +20,7 @@
 #include <limits>
 #include <string>
 
+using namespace search_spsa;
 
 namespace {
 inline int PieceValue(Piece piece)
@@ -229,7 +230,7 @@ Score Search::QuesSearch(Score alpha, Score beta, uint8_t depth, uint8_t ply)
         // Delta pruning check the captured piece and if it is not worth it () skip. Turn of in end game.
         if (status.phase_num > 14)
         {
-            Score big_delta = kPieceValues[static_cast<size_t>(Piece::kQueen)];
+            Score big_delta = spsa_eval::kPieceValues[static_cast<size_t>(Piece::kQueen)];
             
             if ((board_.GetColoredPieceBB(status.cur_color_, Piece::kPawn) & ToBitboard((status.cur_color_ == Color::kWhite) ? Row::_7 : Row::_2)) != 0)
             {
@@ -536,13 +537,13 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool 
 
                 reduction = std::round(reduction_ratio + hist_red);
 
-                reduction += is_check ? -1 : 0; // if prev posisiton is in check reduce reduction
+                //reduction += is_check ? -1 : 0; // if prev posisiton is in check reduce reduction
             
-                reduction += (beta <= alpha + 1) ? 0 : -1; // if move is pv reduce less
+                //reduction += (beta <= alpha + 1) ? 0 : -1; // if move is pv reduce less
 
-                reduction += is_improving ? -1 : 0; // if move is improving reduce it less.
+                //reduction += is_improving ? -1 : 0; // if move is improving reduce it less.
 
-                reduction += is_hashmove_capture ? 1 : 0; // increase reduction if hash move is capture.
+                //reduction += is_hashmove_capture ? 1 : 0; // increase reduction if hash move is capture.
 
                 reduction = std::clamp<int8_t>(reduction, 0, depth - 2);
                 // clamp redcution to b e either 1 or until we skip depthbut not into quesseince search instantly

@@ -5,7 +5,9 @@
 #include "global.hpp"
 #include <cstddef>
 
-namespace 
+using namespace spsa_eval;  // swap to game_eval for the frozen (constexpr) set
+
+namespace
 {
 
 struct EvalPair
