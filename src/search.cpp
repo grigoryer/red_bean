@@ -528,7 +528,7 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool 
             // Skip reduction on low depths, skip if in top 3 moves.
             int8_t reduction{0};
 
-            if (depth >= 3 && legal_move_count >= 3 && is_quiet)
+            if (depth >= 3 && legal_move_count >= 3 && is_quiet && (beta <= alpha + 1))
             {
                 auto hist_score = history_heuristic_[static_cast<size_t>(status.cur_color_)][static_cast<size_t>(move_piece)][static_cast<size_t>(move.GetTo())];
                 auto hist_red = -((hist_score * kLMR_HistReduction) / (kHistoryMax)); //  if history is bad increase reduction if its good reduce reduction. max is 2.
@@ -537,13 +537,13 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool 
 
                 reduction = std::round(reduction_ratio + hist_red);
 
-                reduction += is_check ? -1 : 0; // if prev posisiton is in check reduce reduction
+                //reduction += is_check ? -1 : 0; // if prev posisiton is in check reduce reduction
             
-                reduction += (beta <= alpha + 1) ? 0 : -1; // if move is pv reduce less
+                //reduction += (beta <= alpha + 1) ? 0 : -1; // if move is pv reduce less
 
-                reduction += is_improving ? -1 : 0; // if move is improving reduce it less.
+                //reduction += is_improving ? -1 : 0; // if move is improving reduce it less.
 
-                reduction += is_hashmove_capture ? 1 : 0; // increase reduction if hash move is capture.
+                //reduction += is_hashmove_capture ? 1 : 0; // increase reduction if hash move is capture.
 
                 reduction = std::clamp<int8_t>(reduction, 0, depth - 2);
                 // clamp redcution to b e either 1 or until we skip depthbut not into quesseince search instantly
