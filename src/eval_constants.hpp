@@ -356,106 +356,93 @@ constexpr std::array<Bitboard, kColumnCount> kBandColumns =
 
 
 
-
 namespace spsa_eval
 {
 enum class Phase : uint8_t { kMg, kEg };
 
 inline Score kTempoBonus = 10;
-
 inline Score kBishopPairBonus = 30;
 inline Score kKnightPairPenalty = -8;
 inline Score kRookPairPenalty = -20;
 inline Score kTradeDownBonus = 10;
 inline Score kNoPawnsPenalty = -30;
-
 inline int kStartNonPawnMaterial = 6200;
 
 // King Safety
-
 // Per pawn on x rows in front it. So [0] = current row and is skipped, [1] = one row in front
 constexpr int kPawnShieldRowsInfront{3};  // array size: must stay constexpr
 inline std::array<Score, kPawnShieldRowsInfront> kPawnShieldBonus = {0, 5, 2};
-
 constexpr int kPawnStormRowsInfront{5};  // array size: must stay constexpr
 inline std::array<Score, kPawnStormRowsInfront> kPawnStormPenalty = {0, -2, -2, -1, -1};
-
 inline Score kPawnShieldPenality = -7;
 
 
 // Pawn structure
-
 // Passed pawn
 inline std::array<std::array<Score, kRowCount>, 2> kPassedPawnBonus =
 {{
     // Middlegame
-    { 0, 2, 3, 4, 5, 6, 7, 0 },
+    { 0, 1, 3, 6, 3, 5, 8, 0 },
     // Endgame
-    { 0, 3, 6, 8, 10, 12, 14, 0 },
+    { 0, 6, 5, 6, 12, 15, 18, 0 },
 }};
+
 
 inline std::array<std::array<Score, kRowCount>, 2> kCandidatePassedPawnBonus =
 {{
     // Middlegame
-    { 0, 1, 1, 2, 2, 3, 3, 0 },
+    { 0, -4, 1, 4, 6, 1, 2, 0 },
     // Endgame
-    { 0, 2, 3, 4, 5, 6, 7, 0 },
+    { 0, 8, 4, 5, 3, 4, 9, 0 },
 }};
 
+
 // Isolated pawn: no friendly pawns on adjacent files
-inline std::array<Score, 2> kIsolatedPawnPenalty = { -5, -7 };  // { MG, EG }
-
+inline std::array<Score, 2> kIsolatedPawnPenalty = { -4, -8 };  // { MG, EG }
 // Doubled pawn: applied per extra pawn beyond the first on a file. Worse in EG (fewer pieces to compensate).
-inline std::array<Score, 2> kDoubledPawnPenalty = { -4, -8 };  // { MG, EG }
 
+inline std::array<Score, 2> kDoubledPawnPenalty = { -8, -14 };  // { MG, EG }
 // Backward pawn: stop square lacks pawn protection and is controlled by a sentry.
-inline std::array<Score, 2> kBackwardPawnPenalty = { -3, -2 };  // { MG, EG }
-
+inline std::array<Score, 2> kBackwardPawnPenalty = { -5, -4 };  // { MG, EG }
 // For how many islands, maximum there can only be 4 islands
+
 inline std::array<std::array<Score, 9>, 2> kPawnIslandsPenalty =
 {{
     // Middlegame
-    { 0, 0, -1, -2, -3, 0, 0, 0, 0 },
+    { 0, 0, 1, -2, -5, -1, 0, 0, 0 },
     // Endgame
-    { 0, 0, -2, -4, -6, 0, 0, 0, 0 },
+    { 0, 0, -3, 0, -5, -3, 0, 0, 0 },
 }};
-
 inline std::array<std::array<Score, 5>, 2> kPawnMajorityBonus =
 {{
     // Middlegame
-    { 0, 1, 2, 3, 4 },
+    { 0, 2, 2, 1, -1 },
     // Endgame
-    { 0, 3, 5, 7, 9 },
+    { 0, 3, 2, 1, 10 },
 }};
-
 inline Bitboard kKingsideMask = kColumnsBitboards[static_cast<size_t>(Column::F)] | 
                                    kColumnsBitboards[static_cast<size_t>(Column::G)] | 
                                    kColumnsBitboards[static_cast<size_t>(Column::H)];
-
-
 inline Bitboard kQueensideMask = kColumnsBitboards[static_cast<size_t>(Column::A)] | 
                                     kColumnsBitboards[static_cast<size_t>(Column::B)] | 
                                     kColumnsBitboards[static_cast<size_t>(Column::C)] | 
                                     kColumnsBitboards[static_cast<size_t>(Column::D)];
-
-
 // Indexed by the rank of the defending pawn.
 inline std::array<std::array<Score, kRowCount>, 2> kChainPawnBonus =
 {{
     // Middlegame
-    { 0, 1, 2, 3, 3, 4, 0, 0 },
+    { 0, 5, 2, 3, 5, -1, 2, 0 },
     // Endgame
-    { 0, 2, 4, 6, 6, 8, 0, 0 },
+    { 0, 5, 1, 1, 1, 12, 1, 0 },
 }};
-
 // Phalanx: indexed by the shared rank. Counted once per pawn, so a side-by-side pair
 // scores this twice. Zero on rank 2 so the untouched starting wall earns nothing.
 inline std::array<std::array<Score, kRowCount>, 2> kPhalanxPawnBonus =
 {{
     // Middlegame
-    { 0, 0, 1, 1, 2, 2, 2, 0 },
+    { 0, -4, 2, 4, 3, 1, 0, 0 },
     // Endgame
-    { 0, 0, 2, 2, 3, 3, 3, 0 },
+    { 0, 3, 3, 2, 3, 2, 1, 0 },
 }};
 
 inline std::array<Score, kPieceCount> kMG_VisionBonuses = 
