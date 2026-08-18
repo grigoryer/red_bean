@@ -20,6 +20,7 @@
 #include <limits>
 #include <string>
 
+using namespace search_spsa;
 
 namespace {
 inline int PieceValue(Piece piece)
@@ -207,6 +208,7 @@ void PickNextMove(MoveList& current_moves, size_t cur_index)
 Score Search::QuesSearch(Score alpha, Score beta, uint8_t depth, uint8_t ply)
 {
     // check for draw 50 moves or 3 fold and return 0.
+    nodes_searched++;
     if (board_.IsDraw()) { return kDrawScore; }
 
     between::SetCheckersAndBlockers(board_, board_.GetCurStatus());
@@ -228,7 +230,7 @@ Score Search::QuesSearch(Score alpha, Score beta, uint8_t depth, uint8_t ply)
         // Delta pruning check the captured piece and if it is not worth it () skip. Turn of in end game.
         if (status.phase_num > 14)
         {
-            Score big_delta = kPieceValues[static_cast<size_t>(Piece::kQueen)];
+            Score big_delta = spsa_eval::kPieceValues[static_cast<size_t>(Piece::kQueen)];
             
             if ((board_.GetColoredPieceBB(status.cur_color_, Piece::kPawn) & ToBitboard((status.cur_color_ == Color::kWhite) ? Row::_7 : Row::_2)) != 0)
             {
@@ -267,8 +269,6 @@ Score Search::QuesSearch(Score alpha, Score beta, uint8_t depth, uint8_t ply)
         legal_count++;
 
         if (!is_check && !SeeGe(move, 0)) { continue; }
-
-        nodes_searched++;
 
         moving::MakeMove(board_, move);
         Score score = -QuesSearch(-beta, -alpha, depth - 1, ply + 1);
@@ -330,10 +330,9 @@ void Search::UpdateKillers(ExtMove move, uint8_t depth, uint8_t ply)
 Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool nmp_flag) // NOLINT
 {   
     const size_t eval_s_i = ply + kEvalStackOffset;
-
     pv_length_[ply] = 0;
-
     prev_evals_[eval_s_i] = kNegInf;
+    nodes_searched++;
 
     // check for 50 move rule and 3 fold repitition
     if (ply > 0 && board_.IsDraw()) { return kDrawScore; }
@@ -389,15 +388,17 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool 
 
     // Null Move Prunning. Only apply, when depth is relevant, not in check, cur side has a non pawn piece, previous move was not null move and also only on non pv nodes.
     {
-        if (depth >= 5 && !is_check && !nmp_flag && (beta <= alpha + 1)
+        if (depth >= kNMP_MinDepth && !is_check && !nmp_flag && (beta <= alpha + 1)
                 && ((board_.GetColorBB(status.cur_color_) & ~board_.GetColoredPieceBB(status.cur_color_, Piece::kPawn) & ~board_.GetColoredPieceBB(status.cur_color_, Piece::kKing)) != 0))
-        {        
-            constexpr int npr_reduction = 3; // can be dynamically adjusted later
+        {
+            int npr_reduction = kNMP_Base + (depth / kNMP_DepthDivisor);
             
+            uint8_t reduced_depth = std::max(depth - npr_reduction - 1, 0);
+
             move_stack_[ply] = {Piece::kNone, Square{}};
             moving::MakeNullMove(board_); // make the null move
             between::SetCheckersAndBlockers(board_, board_.GetCurStatus()); // reset checker blockers for now.
-            Score nmp_score = -NegaMax(-beta, -beta + 1, depth - 1 - npr_reduction, ply + 1, true);
+            Score nmp_score = -NegaMax(-beta, -beta + 1, reduced_depth, ply + 1, true);
             moving::UndoNullMove(board_);
             
             if (nmp_score >= beta)
@@ -512,7 +513,6 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool 
         moving::MakeMove(board_, move);
 
         ttable_->PrefetchEntry(board_.GetCurStatus().hash_); // prefech entry
-        nodes_searched++;
 
         // PVS or Scout, If we have a set score scout ahead and test if the move is pv, if it is then redo the search with wider bounds
         // If it isnt then we escape with very small window and dont have to pay for entire search.
@@ -650,7 +650,6 @@ std::pair<ExtMove, Score> Search::NegaMaxWrapper(int depth, Score alpha, Score b
     int searched_moves_count{0};
     for (size_t i{}; i < possible_moves.move_count; ++i)
     {
-        nodes_searched++;
         PickNextMove(possible_moves, i);
         ExtMove move = possible_moves.list[i];
         
