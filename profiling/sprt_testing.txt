@@ -163,7 +163,7 @@ LLR: 3.00 (101.8%) (-2.94, 2.94) [0.00, 10.00]
 SPRT ([0.00, 10.00]) completed - H1 was accepted
 
 
-PAWN EVALUATION SOLO PAWNS
+PAWN EVALUATION SOLO PAWNS pawn_eval
 --------------------------------------------------
 Results of PAWNNNSS vs HISTORY_SCORE (7+0.07, NULL, NULL, opening_book.pgn):
 Elo: 19.95 +/- 13.15, nElo: 23.77 +/- 15.62
@@ -175,3 +175,114 @@ LLR: 2.95 (100.0%) (-2.94, 2.94) [0.00, 10.00]
 SPRT ([0.00, 10.00]) completed - H1 was accepted
 Finished match
 Total Time: 02:45:20 (hours:minutes:seconds)
+
+
+SPSA PAWN EVAL STRUCTURE VS PREV PAWN EVAL STRUCTURE
+--------------------------------------------------
+Results of TEST 1 vs BASE (8+0.08, NULL, 128MB, opening_book.pgn):
+Elo: 29.16 +/- 17.95, nElo: 37.92 +/- 23.22
+LOS: 99.93 %, DrawRatio: 35.35 %, PairsRatio: 1.40
+Games: 860, Wins: 311, Losses: 239, Draws: 310, Points: 466.0 (54.19 %)
+Ptnml(0-2): [27, 89, 152, 109, 53], WL/DD Ratio: 1.71
+LLR: 2.33 (79.0%) (-2.94, 2.94) [0.00, 10.00]
+--------------------------------------------------
+
+
+
+// STRUCTYRE TESTING PAWN EVAL + JUST SOLO BONUSES
+bonuses where really good, but island and majority implementation was negeative sprt anyways.
+
+NO MAjor = chain pawn only
+--------------------------------------------------
+Results of NO MAJOR vs pawn_eval (8+0.08, NULL, 128MB - NULL, opening_book.pgn):
+Elo: 22.65 +/- 13.88, nElo: 28.45 +/- 17.38
+LOS: 99.93 %, DrawRatio: 34.77 %, PairsRatio: 1.30
+Games: 1536, Wins: 553, Losses: 453, Draws: 530, Points: 818.0 (53.26 %)
+Ptnml(0-2): [63, 155, 267, 185, 98], WL/DD Ratio: 1.81
+LLR: 2.96 (100.7%) (-2.94, 2.94) [0.00, 10.00]
+--------------------------------------------------
+SPRT ([0.00, 10.00]) completed - H1 was accepted
+
+
+NO PHALANX = chain pawn + majority bonuses
+--------------------------------------------------
+Results of NO PHALANX vs pawn_eval (8+0.08, NULL, 128MB - NULL, opening_book.pgn):
+Elo: 10.45 +/- 10.37, nElo: 13.07 +/- 12.96
+LOS: 97.59 %, DrawRatio: 33.99 %, PairsRatio: 1.10
+Games: 2760, Wins: 941, Losses: 858, Draws: 961, Points: 1421.5 (51.50 %)
+Ptnml(0-2): [123, 311, 469, 314, 163], WL/DD Ratio: 1.79
+LLR: 1.84 (62.6%) (-2.94, 2.94) [0.00, 10.00]
+--------------------------------------------------
+
+
+// NoIsland = phlanax + majority  + chain
+--------------------------------------------------
+Results of NO ISLANDS vs pawn_eval (8+0.08, NULL, 128MB - NULL, opening_book.pgn):
+Elo: 3.97 +/- 10.42, nElo: 4.90 +/- 12.87
+LOS: 77.25 %, DrawRatio: 34.21 %, PairsRatio: 1.05
+Games: 2800, Wins: 958, Losses: 926, Draws: 916, Points: 1416.0 (50.57 %)
+Ptnml(0-2): [147, 303, 479, 313, 158], WL/DD Ratio: 2.19
+LLR: -0.02 (-0.7%) (-2.94, 2.94) [0.00, 10.00]
+--------------------------------------------------
+
+
+Phalanx + majority + chain vs majority + chain
+--------------------------------------------------
+Results of PHLANX ADDED vs MAJOR ADDED (8+0.08, NULL, 128MB, opening_book.pgn):
+Elo: 16.24 +/- 11.21, nElo: 20.28 +/- 13.97
+LOS: 99.78 %, DrawRatio: 35.61 %, PairsRatio: 1.27
+Games: 2376, Wins: 850, Losses: 739, Draws: 787, Points: 1243.5 (52.34 %)
+Ptnml(0-2): [118, 219, 423, 290, 138], WL/DD Ratio: 2.04
+LLR: 2.99 (101.4%) (-2.94, 2.94) [0.00, 10.00]
+--------------------------------------------------
+SPRT ([0.00, 10.00]) completed - H1 was accepted
+Finished match
+Total Time: 07:37:33 (hours:minutes:seconds)
+
+
+majority + chain vs chain FAIL 
+--------------------------------------------------
+Results of MAJOR ADDED vs CHAIN ONLY (8+0.08, NULL, 128MB, opening_book.pgn):
+Elo: -5.53 +/- 9.70, nElo: -7.08 +/- 12.40
+LOS: 13.16 %, DrawRatio: 35.30 %, PairsRatio: 0.99
+Games: 3014, Wins: 950, Losses: 998, Draws: 1066, Points: 1483.0 (49.20 %)
+Ptnml(0-2): [166, 324, 532, 362, 123], WL/DD Ratio: 1.80
+LLR: -3.02 (-102.4%) (-2.94, 2.94) [0.00, 10.00]
+--------------------------------------------------
+
+Island + Phalanx + chain vs Phalanx + chain FAIL
+--------------------------------------------------
+Results of ISLAND vs PHLAANX CHAIN (8+0.08, NULL, 128MB, opening_book.pgn):
+Elo: -9.09 +/- 11.54, nElo: -11.49 +/- 14.58
+LOS: 6.12 %, DrawRatio: 36.70 %, PairsRatio: 0.93
+Games: 2180, Wins: 677, Losses: 734, Draws: 769, Points: 1061.5 (48.69 %)
+Ptnml(0-2): [129, 228, 400, 237, 96], WL/DD Ratio: 1.63
+LLR: -2.98 (-101.1%) (-2.94, 2.94) [0.00, 10.00]
+--------------------------------------------------
+SPRT ([0.00, 10.00]) completed - H0 was accepted
+
+
+
+// TEMPO ACCPETED BUT NEEDS TO BE RESTESTED LATER. COULD BE FROM INC VAL NOT implementation
+
+--------------------------------------------------
+Results of tempo vs pawn_structure (8+0.08, NULL, 128MB, opening_book.pgn):
+Elo: 3.80 +/- 7.68, nElo: 4.79 +/- 9.69
+LOS: 83.38 %, DrawRatio: 34.33 %, PairsRatio: 1.07
+Games: 4940, Wins: 1633, Losses: 1579, Draws: 1728, Points: 2497.0 (50.55 %)
+Ptnml(0-2): [248, 535, 848, 593, 246], WL/DD Ratio: 1.83
+LLR: -0.08 (-2.9%) (-2.94, 2.94) [0.00, 10.00]
+--------------------------------------------------
+
+
+
+// King safety attack zone.
+--------------------------------------------------
+Results of king_safety vs tempo (8+0.08, NULL, 128MB, opening_book.pgn):
+Elo: 24.37 +/- 14.88, nElo: 28.65 +/- 17.42
+LOS: 99.94 %, DrawRatio: 36.65 %, PairsRatio: 1.35
+Games: 1528, Wins: 641, Losses: 534, Draws: 353, Points: 817.5 (53.50 %)
+Ptnml(0-2): [88, 118, 280, 155, 123], WL/DD Ratio: 6.00
+LLR: 2.97 (100.8%) (-2.94, 2.94) [0.00, 10.00]
+--------------------------------------------------
+SPRT ([0.00, 10.00]) completed - H1 was accepted

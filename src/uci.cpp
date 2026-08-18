@@ -17,7 +17,7 @@ inline Square StringToSquare(const std::string& sqr_str)
     Column col = static_cast<Column>(sqr_str[0] - 'a');
     Row row = static_cast<Row>(sqr_str[1] - '1');
     
-    if (row > Row::_8 || col > Column::H) return Square::kNoSquare;
+    if (row > Row::_8 || col > Column::H) { return Square::kNoSquare; }
     
     return static_cast<Square>((static_cast<int>(row) * 8) + static_cast<int>(col));
 }
@@ -104,6 +104,7 @@ void UCI::SetPosition(const std::string& input)
         moving::MakeMove(board_, move);
     }
 }
+
 
 
 void UCI::ExecuteSearch(const std::string& args)

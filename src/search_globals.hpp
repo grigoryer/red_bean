@@ -40,6 +40,12 @@ constexpr uint8_t kQuesDepth = 7;
 
 namespace search_real
 {
+    // Null Move Pruning. Effective total reduction is kNMP_Base + 1 + depth / kNMP_DepthDivisor,
+    // because the null move search also drops the usual one ply.
+    constexpr int kNMP_Base = 3;
+    constexpr int kNMP_DepthDivisor = 4;  // must stay >= 1: it is an integer divisor
+    constexpr uint8_t kNMP_MinDepth = 5;
+
     // Late Move Reduction
     constexpr double kLMR_Base = 0.75;
     constexpr double kLMR_Divisor = 2.25;
@@ -61,6 +67,12 @@ namespace search_real
 
 namespace search_spsa
 {
+// Null Move Pruning. Effective total reduction is kNMP_Base + 1 + depth / kNMP_DepthDivisor,
+// because the null move search also drops the usual one ply.
+inline int kNMP_Base = 3;
+inline int kNMP_DepthDivisor = 4;  // must stay >= 1: it is an integer divisor
+inline uint8_t kNMP_MinDepth = 5;
+
 // Late Move Reduction
 inline double kLMR_Base = 0.75;
 inline double kLMR_Divisor = 2.25;

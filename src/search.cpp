@@ -388,10 +388,10 @@ Score Search::NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool 
 
     // Null Move Prunning. Only apply, when depth is relevant, not in check, cur side has a non pawn piece, previous move was not null move and also only on non pv nodes.
     {
-        if (depth >= 5 && !is_check && !nmp_flag && (beta <= alpha + 1)
+        if (depth >= kNMP_MinDepth && !is_check && !nmp_flag && (beta <= alpha + 1)
                 && ((board_.GetColorBB(status.cur_color_) & ~board_.GetColoredPieceBB(status.cur_color_, Piece::kPawn) & ~board_.GetColoredPieceBB(status.cur_color_, Piece::kKing)) != 0))
-        {        
-            int npr_reduction = 3 + (depth / 4); // can be dynamically adjusted later
+        {
+            int npr_reduction = kNMP_Base + (depth / kNMP_DepthDivisor);
             
             uint8_t reduced_depth = std::max(depth - npr_reduction - 1, 0);
 

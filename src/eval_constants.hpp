@@ -135,6 +135,34 @@ constexpr std::array<Score, kPieceCount> kPieceValues =
     0    // king
 };
 
+
+constexpr std::array<Score, kPieceCount> kAttackingKingValues = 
+{
+    80, // queen
+    40, // rook
+    20, // bishop
+    20, // knight
+    0,  // pawn storm
+    0    // king
+};
+
+
+
+constexpr std::array<Score, 8> kAttackCountWeight = 
+{
+    0,
+    0,
+    50,
+    75,
+    88,
+    94,
+    97,
+    99,
+};
+
+
+
+
 constexpr std::array<Score, kSquareCount> kMG_QueenPST = 
 {
     -10,  -5,  -5,   0,   0,  -5,  -5, -10,
@@ -354,8 +382,6 @@ constexpr std::array<Bitboard, kColumnCount> kBandColumns =
 
 
 
-
-
 namespace spsa_eval
 {
 enum class Phase : uint8_t { kMg, kEg };
@@ -474,6 +500,32 @@ inline std::array<Score, kPieceCount> kPieceValues =
     100, // pawn
     0    // king
 };
+
+
+inline std::array<Score, kPieceCount> kAttackingKingValues = 
+{
+    80, // queen
+    40, // rook
+    20, // bishop
+    20, // knight
+    0,  // pawn storm
+    0    // king
+};
+
+
+inline std::array<Score, 8> kAttackCountWeight = 
+{
+    0,
+    0,
+    50,
+    75,
+    88,
+    94,
+    97,
+    99,
+};
+
+
 
 inline std::array<Score, kSquareCount> kMG_QueenPST = 
 {

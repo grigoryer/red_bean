@@ -81,18 +81,28 @@ void AddSearch(std::vector<Param>& out)
 {
     using namespace search_spsa;
 
-    AddBounded(out, "LMRBase", kLMR_Base, Kind::kScaled, 25, 150);
-    AddBounded(out, "LMRDivisor", kLMR_Divisor, Kind::kScaled, 150, 350);
-    AddBounded(out, "LMRHistReduction", kLMR_HistReduction, Kind::kInt, 0, 6);
+    // Bounds are held to the range these heuristics take in practice. Tuning runs
+    // at a fast control, where over-pruning scores well because the search is never
+    // deep enough to be punished for it, so the aggressive end of each range is the
+    // one to keep closed: low divisors, low margins, high depth caps.
+    // NMPDepthDivisor is an integer divisor -- its min must stay >= 1 either way or
+    // the search divides by zero.
+    AddBounded(out, "NMPBase", kNMP_Base, Kind::kInt, 2, 5);
+    AddBounded(out, "NMPDepthDivisor", kNMP_DepthDivisor, Kind::kInt, 3, 6);
+    AddBounded(out, "NMPMinDepth", kNMP_MinDepth, Kind::kUint8, 2, 6);
 
-    AddBounded(out, "LMPMaxDepth", kLMP_MaxDepth, Kind::kUint8, 2, 10);
-    AddBounded(out, "LMPBase", kLMP_Base, Kind::kInt, 1, 10);
+    AddBounded(out, "LMRBase", kLMR_Base, Kind::kScaled, 25, 155);
+    AddBounded(out, "LMRDivisor", kLMR_Divisor, Kind::kScaled, 50, 350);
+    AddBounded(out, "LMRHistReduction", kLMR_HistReduction, Kind::kInt, 0, 4);
 
-    AddBounded(out, "RFPMaxDepth", kRFP_MaxDepth, Kind::kUint8, 2, 12);
-    AddBounded(out, "RFPMargin", kRFP_Margin, Kind::kScore, 30, 250);
+    AddBounded(out, "LMPMaxDepth", kLMP_MaxDepth, Kind::kUint8, 3, 8);
+    AddBounded(out, "LMPBase", kLMP_Base, Kind::kInt, 2, 6);
 
-    AddBounded(out, "FutilityMargin", kFutilityMargin, Kind::kScore, 40, 250);
-    AddBounded(out, "FutilityMaxDepth", kFutilityMaxDepth, Kind::kUint8, 1, 8);
+    AddBounded(out, "RFPMaxDepth", kRFP_MaxDepth, Kind::kUint8, 4, 8);
+    AddBounded(out, "RFPMargin", kRFP_Margin, Kind::kScore, 50, 170);
+
+    AddBounded(out, "FutilityMargin", kFutilityMargin, Kind::kScore, 60, 180);
+    AddBounded(out, "FutilityMaxDepth", kFutilityMaxDepth, Kind::kUint8, 2, 5);
 }
 
 std::vector<Param> Build()
@@ -150,12 +160,6 @@ std::vector<Param> Build()
     AddPhasePair(out, "DoubledPawn", kDoubledPawnPenalty);
     AddPhasePair(out, "BackwardPawn", kBackwardPawnPenalty);
 
-    // A side with pawns has 1-4 islands; the 0 and 5+ slots cannot be reached.
-    AddPhaseTable(out, "PawnIslands", kPawnIslandsPenalty, 1, 4);
-
-    // Majority margin is clamped to 4, and a margin of 0 returns before scoring.
-    AddPhaseTable(out, "PawnMajority", kPawnMajorityBonus, 1, 4);
-
     AddSearch(out);
     return out;
 }
@@ -208,8 +212,11 @@ void PrintSpsaConfig(std::ostream& out)
         const Param& param = params[i];
 
         // A step of a twentieth of the range puts the first perturbations well
-        // inside the bounds while still being large enough to score.
-        const double step = std::max(0.5, (param.max - param.min) / 20.0);
+        // inside the bounds while still being large enough to score. Everything but
+        // kScaled lands in an integer, so a sub-1.0 step there would round most
+        // perturbations back onto the current value and contribute no gradient.
+        const double floor = (param.kind == Kind::kScaled) ? 0.5 : 1.0;
+        const double step = std::max(floor, (param.max - param.min) / 20.0);
 
         out << "    \"" << param.name << "\": {"
             << "\"value\": " << param.def << ", "
