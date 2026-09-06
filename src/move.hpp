@@ -1,6 +1,6 @@
 #pragma once
 #include "global.hpp"
-#include "search_globals.hpp"
+#include "search_constants.hpp"
 #include <cstdint>
 
 
@@ -17,6 +17,7 @@ class Move
 {
 public:
     Move() = default;
+    explicit constexpr Move(uint16_t raw) : data_(raw) {  }
 
     // Primary construction path — packs a consistent move in one shot.
     constexpr Move(Square from, Square to, MoveType type = MoveType::kNormal, Piece promo = Piece::kQueen)
@@ -37,6 +38,7 @@ public:
     [[nodiscard]] constexpr bool IsEnPassant() const { return GetType() == MoveType::kEnPassant; }
     [[nodiscard]] constexpr bool IsCastle() const { return GetType() == MoveType::kCastle; }
     [[nodiscard]] constexpr uint16_t Raw() const { return data_; }
+    [[nodiscard]] static constexpr Move FromRaw(uint16_t raw) { return Move(raw); }
 
     [[nodiscard]] constexpr bool operator==(const Move& other) const { return data_ == other.data_; }
     [[nodiscard]] constexpr bool operator!=(const Move& other) const { return data_ != other.data_; }
@@ -56,6 +58,9 @@ private:
     {
         return static_cast<uint16_t>(static_cast<int>(piece) - static_cast<int>(Piece::kQueen));
     }
+
+    // Rebuild from an already packed word. Private so no implicit uint16_t -> Move
+    // conversion leaks into overload resolution; reach it through FromRaw.
 
     uint16_t data_;
 };

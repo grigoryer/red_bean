@@ -286,3 +286,25 @@ Ptnml(0-2): [88, 118, 280, 155, 123], WL/DD Ratio: 6.00
 LLR: 2.97 (100.8%) (-2.94, 2.94) [0.00, 10.00]
 --------------------------------------------------
 SPRT ([0.00, 10.00]) completed - H1 was accepted
+
+
+// Add Two tier TTAble replacement, If age is less than 2 remove, else use the depth preffered.
+
+
+
+
+
+
+
+
+
+--------------------------------------------------
+Results of NEW SPSA vs base (15+0.15, NULL, 128MB, opening_book.pgn):
+Elo: -0.26 +/- 6.14, nElo: -0.36 +/- 8.36
+LOS: 46.67 %, DrawRatio: 36.25 %, PairsRatio: 1.00
+Games: 6642, Wins: 1892, Losses: 1897, Draws: 2853, Points: 3318.5 (49.96 %)
+Ptnml(0-2): [246, 813, 1204, 816, 242], WL/DD Ratio: 0.97
+LLR: -2.95 (-100.1%) (-2.94, 2.94) [0.00, 10.00]
+--------------------------------------------------
+SPRT ([0.00, 10.00]) completed - H0 was accepted
+

@@ -8,7 +8,7 @@
 
 int main() 
 {    
-    UCI engine{};
+    UCI engine{1};
     engine.Loop();
     return 0;
 }

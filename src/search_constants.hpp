@@ -3,6 +3,7 @@
 #include "global.hpp"
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 
 using Score = int16_t;
 using MoveScore = int16_t;
@@ -33,63 +34,35 @@ enum class NodeType : uint8_t
 };
 
 // Improving
-constexpr int kEvalStackOffset = 10;
+constexpr int kEvalStackOffset = 10; // skip first 10 moves in array.
 
 // Quesience Search
 constexpr uint8_t kQuesDepth = 7;
 
-namespace search_real
-{
-    // Null Move Pruning. Effective total reduction is kNMP_Base + 1 + depth / kNMP_DepthDivisor,
-    // because the null move search also drops the usual one ply.
-    constexpr int kNMP_Base = 3;
-    constexpr int kNMP_DepthDivisor = 4;  // must stay >= 1: it is an integer divisor
-    constexpr uint8_t kNMP_MinDepth = 5;
-
-    // Late Move Reduction
-    constexpr double kLMR_Base = 0.75;
-    constexpr double kLMR_Divisor = 2.25;
-    constexpr int kLMR_HistReduction = 2;
-    
-    // Late Move Pruning
-    constexpr uint8_t kLMP_MaxDepth = 6;
-    constexpr int kLMP_Base = 3;
-    
-    // Reverse Futlity Prunning
-    constexpr uint8_t kRFP_MaxDepth = 6; // depth and which we can check for rfp, if our remaining depth is too high we cant trust it 100%.
-    constexpr Score kRFP_Margin = 80; // for how deep we prune we increase the margin, so depth * margin. 
-    
-    // Futility Prunning
-    constexpr Score kFutilityMargin = 100;
-    constexpr uint8_t kFutilityMaxDepth = 3; // depth
-}
-
-
-namespace search_spsa
-{
 // Null Move Pruning. Effective total reduction is kNMP_Base + 1 + depth / kNMP_DepthDivisor,
 // because the null move search also drops the usual one ply.
-inline int kNMP_Base = 3;
-inline int kNMP_DepthDivisor = 4;  // must stay >= 1: it is an integer divisor
-inline uint8_t kNMP_MinDepth = 5;
+constexpr size_t kAgeMargin = 9;
+
+constexpr int kNMP_Base = 2;
+constexpr int kNMP_DepthDivisor = 3;  // must stay >= 1: it is an integer divisor
+constexpr uint8_t kNMP_MinDepth = 3;
 
 // Late Move Reduction
-inline double kLMR_Base = 0.75;
-inline double kLMR_Divisor = 2.25;
-inline int kLMR_HistReduction = 2;
+constexpr double kLMR_Base = 0.83;
+constexpr double kLMR_Divisor = 2.05;
+constexpr int kLMR_HistReduction = 2;
 
 // Late Move Pruning
-inline uint8_t kLMP_MaxDepth = 6;
-inline int kLMP_Base = 3;
+constexpr uint8_t kLMP_MaxDepth = 6;
+constexpr int kLMP_Base = 3;
 
 // Reverse Futlity Prunning
-inline uint8_t kRFP_MaxDepth = 6; // depth and which we can check for rfp, if our remaining depth is too high we cant trust it 100%.
-inline Score kRFP_Margin = 80; // for how deep we prune we increase the margin, so depth * margin. 
+constexpr uint8_t kRFP_MaxDepth = 6; // depth and which we can check for rfp, if our remaining depth is too high we cant trust it 100%.
+constexpr Score kRFP_Margin = 83; // for how deep we prune we increase the margin, so depth * margin. 
 
 // Futility Prunning
-inline Score kFutilityMargin = 100;
-inline uint8_t kFutilityMaxDepth = 3; // depth
-};
+constexpr Score kFutilityMargin = 100;
+constexpr uint8_t kFutilityMaxDepth = 3; // depth
 
 
 /// MOVE OREDERING

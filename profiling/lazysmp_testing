@@ -1,0 +1,15 @@
+
+
+
+
+Not staggared
+
+8 threads
+startpos
+info depth 20 score cp 27 nodes 10667728 nps 2002577 time 5327 pv e2e4 e7e5 g1f3 b8c6 f1c4 f8c5 b1c3 g8f6 d2d3 e8g8 e1g1 a7a6 c1g5 h7h6
+bestmove e2e4
+
+
+perft2
+info depth 18 score cp -123 nodes 4747294 nps 1309598 time 3625 pv e2a6 b4c3 d2c3 h3g2 f3g2 e6d5 e5g4 e8f8 g4f6 g7f6 c3f6 e7f6 c2c3 b6a4 a6b7 a8b8 b7d5 b8b2
+bestmove e2a6

@@ -3,7 +3,7 @@
 #include "attacks.hpp"
 #include "board.hpp"
 #include "global.hpp"
-#include "search_globals.hpp"
+#include "search_constants.hpp"
 
 
 namespace evaluation

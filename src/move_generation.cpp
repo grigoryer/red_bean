@@ -1,7 +1,4 @@
 #include "move_generation.hpp"
-#include "search_globals.hpp"
-#include "attacks.hpp"
-#include "global.hpp"
 
 #include <cassert>
 

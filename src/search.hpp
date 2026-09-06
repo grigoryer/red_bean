@@ -1,12 +1,10 @@
 #pragma once
 
 #include "board.hpp"
-#include "eval.hpp"
 #include "global.hpp"
 #include "move.hpp"
-#include "search_globals.hpp"
+#include "search_constants.hpp"
 #include "tt.hpp"
-#include "eval.hpp"
 #include <cstdint>
 #include <memory>
     
@@ -14,7 +12,6 @@ using ContRow = std::array<std::array<MoveScore, kSquareCount>, kPieceCount>;
 
 class Search
 {
-    Board& board_;
     std::atomic<bool>& stop_flag_;
 
     std::array<Score, kMaxPly + kEvalStackOffset> prev_evals_ = {kNegInf}; 
@@ -24,36 +21,35 @@ class Search
     
     std::array<std::array<ExtMove, 2>, kMaxPly> killers_{}; // killer move table, 2 killer moves for ply.
 
-    uint8_t age{}; // for tt
+    uint8_t tt_age_{}; // for tt
 
-    // history heurstic for non capture moves.
-    // Piece to color
+    // history heurstic for non capture moves. Piece to color
     struct PieceTo { Piece piece{Piece::kNone}; Square to{}; };
     
     std::array<std::array<std::array<MoveScore, kSquareCount>, kPieceCount>, kColorCount> history_heuristic_{};
     std::array<std::array<ContRow, kSquareCount>, kPieceCount> cont_history_{};
     std::array<PieceTo, kMaxPly> move_stack_{};
 
-    Score QuesSearch(Score alpha, Score beta, uint8_t depth, uint8_t ply);
+    Score QuesSearch(Board& board, Score alpha, Score beta, uint8_t depth, uint8_t ply);
+
     void UpdatePv(uint8_t ply, ExtMove move);
-    void BoostMoves(MoveList& current_moves, uint8_t ply);
+    void BoostMoves(Board& board, MoveList& current_moves, uint8_t ply);
     ContRow* ContHistRow(uint8_t ply, uint8_t back);
     void AgeHistory();
-    void UpdateHistory(ExtMove move, MoveScore bonus, uint8_t ply);
-    void UpdateKillers(ExtMove move, uint8_t depth, uint8_t ply);
-    bool SeeGe(ExtMove move, MoveScore threshold);
+    void UpdateHistory(Board& board, ExtMove move, MoveScore bonus, uint8_t ply);
+    void UpdateKillers(Board& board, ExtMove move, uint8_t depth, uint8_t ply);
 
-    Score NegaMax(Score alpha, Score beta, uint8_t depth, uint8_t ply, bool nmp_flag);
-    std::pair<ExtMove, Score> NegaMaxWrapper(int depth, Score alpha, Score beta, ExtMove prev_best);
+    bool SeeGe(Board& board, ExtMove move, MoveScore threshold);
+
+    Score NegaMax(Board& board, Score alpha, Score beta, uint8_t depth, uint8_t ply, bool nmp_flag);
+    std::pair<ExtMove, Score> NegaMaxWrapper(Board& board, int depth, Score alpha, Score beta, ExtMove prev_best);
     
 public:
-    std::unique_ptr<TTable> ttable_;
+    std::shared_ptr<TTable> ttable_;
     uint64_t nodes_searched{};
     
-    ExtMove FindBestMove(int64_t soft_ms, size_t depth = kMaxSearchDepth);
-
+    ExtMove FindBestMove(Board& board, int64_t soft_ms, size_t depth, size_t start_depth, size_t id_);
     void ResetSearch();
 
-    void PrintHistoryStats() const;
-    explicit Search(Board& board, std::atomic<bool>& stop_flag);
+    explicit Search(std::atomic<bool>& stop_flag, std::shared_ptr<TTable> tt);
 };

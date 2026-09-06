@@ -5,7 +5,7 @@
 #include "global.hpp"
 #include "move.hpp"
 #include "board.hpp"
-#include "search_globals.hpp"
+#include "search_constants.hpp"
 #include <cstddef>
 
 // score moves in generation since we do not have a specific is capture. This way we may score moves that are not legal, we skip unnecart is capture checks later on in clean move list.

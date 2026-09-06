@@ -1,12 +1,9 @@
 #include "eval.hpp"
 #include <algorithm>
 #include "attacks.hpp"
-#include "debug.hpp"
 #include "eval_constants.hpp"
 #include "global.hpp"
 #include <cstddef>
-
-using namespace spsa_eval;  // swap to game_eval for the frozen (constexpr) set
 
 namespace
 {
