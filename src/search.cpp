@@ -195,10 +195,16 @@ void PickNextMove(MoveList& current_moves, size_t cur_index)
     std::swap(current_moves.list[cur_index], current_moves.list[best_move]);
 }
 
+void Search::CountNode()
+{
+    nodes_searched++;
+    if (use_node_limit_ && ++total_nodes_ >= node_limit_) { stop_flag_ = true; }
+}
+
 Score Search::QuesSearch(Board& board, Score alpha, Score beta, uint8_t depth, uint8_t ply)
 {
     // check for draw 50 moves or 3 fold and return 0.
-    nodes_searched++;
+    CountNode();
     if (board.IsDraw()) { return kDrawScore; }
 
     between::SetCheckersAndBlockers(board, board.GetCurStatus());
@@ -322,7 +328,7 @@ Score Search::NegaMax(Board& board, Score alpha, Score beta, uint8_t depth, uint
     const size_t eval_s_i = ply + kEvalStackOffset;
     pv_length_[ply] = 0;
     prev_evals_[eval_s_i] = kNegInf;
-    nodes_searched++;
+    CountNode();
 
     // check for 50 move rule and 3 fold repitition
     if (ply > 0 && board.IsDraw()) { return kDrawScore; }
@@ -686,8 +692,12 @@ std::pair<ExtMove, Score> Search::NegaMaxWrapper(Board& board, int depth, Score 
 
 // Adding iterative deepening. Bascially instead of straight up searching to specified depth we search at depth 1 until that depth.
 // This is a a bit reduntant but after adding a Transposition table we acheive more cutoffs due to skipping paths which are incredibly bad.
-ExtMove Search::FindBestMove(Board& board, int64_t soft_ms, size_t depth, size_t start_depth, size_t id_)
+ExtMove Search::FindBestMove(Board& board, int64_t soft_ms, size_t depth, size_t start_depth, size_t id_, uint64_t node_limit)
 {
+    node_limit_ = node_limit;
+    use_node_limit_ = node_limit > 0;
+    total_nodes_ = 0;
+
     Score alpha = kNegInf;
     Score beta = kPosInf;
     ExtMove best_move{};

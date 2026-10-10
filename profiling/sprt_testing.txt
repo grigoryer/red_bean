@@ -308,3 +308,29 @@ LLR: -2.95 (-100.1%) (-2.94, 2.94) [0.00, 10.00]
 --------------------------------------------------
 SPRT ([0.00, 10.00]) completed - H0 was accepted
 
+
+
+3 vs 1 thread
+--------------------------------------------------
+Results of LAZYSMP vs base (10+0.1, 3t - 1t, 128MB, opening_book.pgn):
+Elo: 85.76 +/- 27.87, nElo: 113.38 +/- 35.31
+LOS: 100.00 %, DrawRatio: 34.41 %, PairsRatio: 3.21
+Games: 372, Wins: 157, Losses: 67, Draws: 148, Points: 231.0 (62.10 %)
+Ptnml(0-2): [8, 21, 64, 59, 34], WL/DD Ratio: 0.88
+LLR: 2.95 (100.3%) (-2.94, 2.94) [0.00, 10.00]
+
+
+
+
+6 vs 3 threads
+--------------------------------------------------
+Results of LAZYSMP vs base (10+0.1, 6t - 3t, 128MB, opening_book.pgn):
+Elo: 35.96 +/- 17.08, nElo: 52.22 +/- 24.60
+LOS: 100.00 %, DrawRatio: 39.95 %, PairsRatio: 1.64
+Games: 766, Wins: 233, Losses: 154, Draws: 379, Points: 422.5 (55.16 %)
+Ptnml(0-2): [13, 74, 153, 107, 36], WL/DD Ratio: 0.55
+LLR: 2.94 (100.0%) (-2.94, 2.94) [0.00, 10.00]
+--------------------------------------------------
+SPRT ([0.00, 10.00]) completed - H1 was accepted
+
+

@@ -43,6 +43,7 @@ struct ThreadSearchArgs
     uint64_t soft_ms{};
     size_t depth{};
     size_t start_depth{};
+    uint64_t nodes{};        // 0 = no node limit
 };
 
 class ThreadPool;

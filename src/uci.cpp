@@ -84,7 +84,7 @@ void SearcherThread::IdleLoop(ThreadPool& pool)
 
         lck.unlock();
 
-        best_move = searcher_.FindBestMove(board_, search_args.soft_ms, search_args.depth, search_args.start_depth ,id_);   // polls pool.stop_flag_ inside
+        best_move = searcher_.FindBestMove(board_, search_args.soft_ms, search_args.depth, search_args.start_depth, id_, search_args.nodes);   // polls pool.stop_flag_ inside
         
         lck.lock();
         searching_ = false;
@@ -152,6 +152,7 @@ void UCI::ExecuteSearch()
         int64_t btime = 1000;
         int64_t winc = 100;
         int64_t binc = 100;
+        uint64_t nodes{};
     
         int64_t movetime{};      // 0 when absent
         int64_t depth_arg{};     // 0 when absent
@@ -165,6 +166,7 @@ void UCI::ExecuteSearch()
             else if (token == "binc") { stream >> binc; has_clock = true; }
             else if (token == "movetime") { stream >> movetime; }
             else if (token == "depth") { stream >> depth_arg; }
+            else if (token == "nodes") { stream >> nodes; }
         }
     
         size_t max_depth = (depth_arg > 0) ? std::min<size_t>(static_cast<size_t>(depth_arg), kMaxSearchDepth) : kMaxSearchDepth;
@@ -202,6 +204,7 @@ void UCI::ExecuteSearch()
                 searcher_threads_.pool_[i]->search_args.depth = max_depth;
                 searcher_threads_.pool_[i]->search_args.soft_ms = soft_ms;
                 searcher_threads_.pool_[i]->search_args.start_depth = 1 + (i % 4) * 2;
+                searcher_threads_.pool_[i]->search_args.nodes = nodes;
 
                 if (i > 0)
                 {

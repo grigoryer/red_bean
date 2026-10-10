@@ -23,6 +23,10 @@ class Search
 
     uint8_t tt_age_{}; // for tt
 
+    bool use_node_limit_{};     // only check the limit when "go nodes" was given
+    uint64_t node_limit_{};
+    uint64_t total_nodes_{};    // nodes for the whole go, not reset per iteration
+
     // history heurstic for non capture moves. Piece to color
     struct PieceTo { Piece piece{Piece::kNone}; Square to{}; };
     
@@ -30,6 +34,7 @@ class Search
     std::array<std::array<ContRow, kSquareCount>, kPieceCount> cont_history_{};
     std::array<PieceTo, kMaxPly> move_stack_{};
 
+    void CountNode();
     Score QuesSearch(Board& board, Score alpha, Score beta, uint8_t depth, uint8_t ply);
 
     void UpdatePv(uint8_t ply, ExtMove move);
@@ -48,7 +53,7 @@ public:
     std::shared_ptr<TTable> ttable_;
     uint64_t nodes_searched{};
     
-    ExtMove FindBestMove(Board& board, int64_t soft_ms, size_t depth, size_t start_depth, size_t id_);
+    ExtMove FindBestMove(Board& board, int64_t soft_ms, size_t depth, size_t start_depth, size_t id_, uint64_t node_limit);
     void ResetSearch();
 
     explicit Search(std::atomic<bool>& stop_flag, std::shared_ptr<TTable> tt);
