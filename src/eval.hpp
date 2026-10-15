@@ -8,6 +8,5 @@
 
 namespace evaluation
 {
-
-    Score Evaluate(Board& board);
+    Score Evaluate(Board& board, Color color);
 }

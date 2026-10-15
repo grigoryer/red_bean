@@ -24,7 +24,7 @@ void ApplyGravity(MoveScore& entry, MoveScore bonus)
     entry += bonus - entry * std::abs(bonus) / kHistoryMax; // gravity formula
 }
 
-}
+}  // namespace
 
 Search::Search(std::atomic<bool>& stop_flag, std::shared_ptr<TTable> tt)
     : stop_flag_(stop_flag), ttable_(std::move(tt)) { }
@@ -210,7 +210,7 @@ Score Search::QuesSearch(Board& board, Score alpha, Score beta, uint8_t depth, u
     between::SetCheckersAndBlockers(board, board.GetCurStatus());
     const bool is_check = board.IsCheck();
     
-    Score standing_pat = (evaluation::Evaluate(board) * (board.GetCurStatus().cur_color_ == Color::kBlack ? -1 : 1));
+    Score standing_pat = evaluation::Evaluate(board, board.GetCurStatus().cur_color_);
     Score best_score{};
     auto& status = board.GetCurStatus();
 
@@ -369,7 +369,7 @@ Score Search::NegaMax(Board& board, Score alpha, Score beta, uint8_t depth, uint
     {   
         if (!is_check)
         {
-            static_eval = evaluation::Evaluate(board) * ((status.cur_color_ == Color::kBlack) ? -1 : 1);
+            static_eval = evaluation::Evaluate(board, status.cur_color_);
             if (depth <= kRFP_MaxDepth && (beta <= alpha + 1) && std::abs(beta) < kMateScoreThreshold && 
                 (static_eval - (kRFP_Margin * depth)) >= beta)
             {
@@ -614,7 +614,7 @@ Score Search::NegaMax(Board& board, Score alpha, Score beta, uint8_t depth, uint
 
 std::pair<ExtMove, Score> Search::NegaMaxWrapper(Board& board, int depth, Score alpha, Score beta, ExtMove prev_best)
 {
-    prev_evals_[0 + kEvalStackOffset] = (evaluation::Evaluate(board) * (board.GetCurStatus().cur_color_ == Color::kBlack ? -1 : 1));
+    prev_evals_[0 + kEvalStackOffset] = evaluation::Evaluate(board, board.GetCurStatus().cur_color_);
     Score best_score{kNegInf};
     ExtMove best_move{};
     bool best_score_set{false};

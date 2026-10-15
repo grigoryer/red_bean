@@ -4,6 +4,7 @@
 #include <array>
 #include <cstddef>
 #include <array>
+#include "nnue.hpp"
 
 
 class Status 
@@ -14,8 +15,8 @@ public:
     Bitboard leaper_checking_squares_{};
     
     Bitboard hash_{};
-    int phase_num{};
-    
+    int8_t phase_num{};
+
     uint16_t full_move_{};
     uint8_t half_move_{};    
     
@@ -35,9 +36,10 @@ private:
     
     std::array<Status, 1024> status_history_;
     uint16_t status_count_{};
-
     
 public:
+    AccumulatorPair acc{};
+    
 
     Board();
 

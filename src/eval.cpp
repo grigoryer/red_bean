@@ -3,6 +3,7 @@
 #include "attacks.hpp"
 #include "eval_constants.hpp"
 #include "global.hpp"
+#include "nnue.hpp"
 #include <cstddef>
 
 namespace
@@ -260,11 +261,7 @@ inline void PawnStructure(Bitboard ally_pawns, EvalPair& acc, Bitboard enemy_paw
 }  // namespace
 
 
-namespace evaluation
-{
-
-
-Score Evaluate(Board& board)
+Score HandCraftedEvaluation(Board& board)
 {
     EvalPair acc{};
     int white_material{};
@@ -321,7 +318,7 @@ Score Evaluate(Board& board)
     KingSafety<Color::kWhite>(board, white_pawns, acc, (GetLsb(board.GetColoredPieceBB(Color::kWhite, Piece::kKing))), occ);
     KingSafety<Color::kBlack>(board, black_pawns, acc, (GetLsb(board.GetColoredPieceBB(Color::kBlack, Piece::kKing))), occ);
 
-    const int phase = std::clamp(board.GetCurStatus().phase_num, 0, kMaxPhase);
+    const int phase = std::clamp<int8_t>(board.GetCurStatus().phase_num, static_cast<int8_t>(0), kMaxPhase);
     int score = ((acc.mg * phase) + (acc.eg * (kMaxPhase - phase))) / kMaxPhase;
 
     // Trade-down: the side ahead in material gains more from each piece leaving the board.
@@ -337,4 +334,16 @@ Score Evaluate(Board& board)
     return static_cast<Score>(score);
 }
 
+
+namespace evaluation
+{
+    Score Evaluate(Board& board, Color color)
+    {
+        if (color == Color::kWhite)
+        {
+            return Nnue::Forward(board.acc.white_accumulator_);
+        }
+
+        return Nnue::Forward(board.acc.black_accumulator_);
+    }
 }  // namespace evaluation

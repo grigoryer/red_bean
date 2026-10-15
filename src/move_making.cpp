@@ -3,6 +3,7 @@
 #include "global.hpp"
 #include "board.hpp"
 #include "move_generation.hpp"
+#include "nnue.hpp"
 #include "zobrist.hpp"
 #include <cstdlib>
 #include <cstddef>
@@ -104,10 +105,10 @@ inline void SetCastlPerm(Status& status, CastlePerm perm)
 } // namespace
 
 
-
 // Needs to 
 void MakeMove(Board& board, ExtMove move) //NOLINT
 {   
+
     auto& status = board.CreateNewStatus();
     Square from_sqr{move.GetFrom()};
     Square to_sqr{move.GetTo()};
@@ -122,6 +123,15 @@ void MakeMove(Board& board, ExtMove move) //NOLINT
     bool reset_halfclock{false};
     status.half_move_++;
     SetEpsquare(status, Square::kNoSquare);
+    
+    // remove current piece from current position
+    Nnue::Sub(&board.acc.white_accumulator_, PieceToIndex(piece, from_sqr, ally_color, Color::kWhite));
+    Nnue::Sub(&board.acc.black_accumulator_, PieceToIndex(piece, from_sqr, ally_color, Color::kBlack));
+
+    // add curent peice.
+    Nnue::Add(&board.acc.white_accumulator_, PieceToIndex(piece, to_sqr, ally_color, Color::kWhite));
+    Nnue::Add(&board.acc.black_accumulator_, PieceToIndex(piece, to_sqr, ally_color, Color::kBlack));
+    
 
     auto new_perm = static_cast<CastlePerm>(static_cast<uint8_t>(status.castling_) & kCastleMaskArray.at(ToIndex(from_sqr)) & kCastleMaskArray.at(ToIndex(to_sqr)));
     if (new_perm != status.castling_)
@@ -131,6 +141,10 @@ void MakeMove(Board& board, ExtMove move) //NOLINT
 
     if (status.captured_piece_ != Piece::kNone) // remove captured piece color.
     {
+        // remove piece from accumulator
+        Nnue::Sub(&board.acc.white_accumulator_, PieceToIndex(status.captured_piece_, to_sqr, enemy_color, Color::kWhite));
+        Nnue::Sub(&board.acc.black_accumulator_, PieceToIndex(status.captured_piece_, to_sqr, enemy_color, Color::kBlack));
+
         RemovePiece(board, status.captured_piece_, to_sqr, enemy_color, hash);
         status.phase_num -= kPhaseWeights[static_cast<size_t>(status.captured_piece_)]; // adjust phase with one line.
         reset_halfclock = true; // reset the half move since capture.
@@ -150,12 +164,22 @@ void MakeMove(Board& board, ExtMove move) //NOLINT
             rook_from = static_cast<Square>(static_cast<int>(rook_from) + (ally_color == Color::kWhite ? 0 : 56));
 
             MovePiece(board, Piece::kRook, rook_from, ally_color, rook_to, hash);
+            
+            // move rook in accumulator
+            Nnue::Sub(&board.acc.white_accumulator_, PieceToIndex(Piece::kRook, rook_from, ally_color, Color::kWhite));
+            Nnue::Sub(&board.acc.black_accumulator_, PieceToIndex(Piece::kRook, rook_from, ally_color, Color::kBlack));
+            Nnue::Add(&board.acc.white_accumulator_, PieceToIndex(Piece::kRook, rook_to, ally_color, Color::kWhite));
+            Nnue::Add(&board.acc.black_accumulator_, PieceToIndex(Piece::kRook, rook_to, ally_color, Color::kBlack));
         }
         else if (move.IsEnPassant())
         {
             int shift = (ally_color == Color::kWhite ? -8 : 8);
             auto captured_square{static_cast<Square>(static_cast<int>(to_sqr) + shift)};
             RemovePiece(board, Piece::kPawn, captured_square, enemy_color, hash);
+            
+            // remove enemy pawn in accumulator
+            Nnue::Sub(&board.acc.white_accumulator_, PieceToIndex(Piece::kPawn, captured_square, enemy_color, Color::kWhite));
+            Nnue::Sub(&board.acc.black_accumulator_, PieceToIndex(Piece::kPawn, captured_square, enemy_color, Color::kBlack));
         }
         else if (move.IsPromotion())
         {
@@ -163,6 +187,13 @@ void MakeMove(Board& board, ExtMove move) //NOLINT
             SetPiece(board, move.GetPromo(), to_sqr, ally_color, hash);
             ChangeColor(status);
             status.phase_num += kPhaseWeights[static_cast<size_t>(move.GetPromo())]; // adjust phase with one line.
+
+            // remove pawn from accumulator and new piece
+            Nnue::Sub(&board.acc.white_accumulator_, PieceToIndex(Piece::kPawn, to_sqr, ally_color, Color::kWhite));
+            Nnue::Sub(&board.acc.black_accumulator_, PieceToIndex(Piece::kPawn, to_sqr, ally_color, Color::kBlack));
+            Nnue::Add(&board.acc.white_accumulator_, PieceToIndex(move.GetPromo(), to_sqr, ally_color, Color::kWhite));
+            Nnue::Add(&board.acc.black_accumulator_, PieceToIndex(move.GetPromo(), to_sqr, ally_color, Color::kBlack));
+
             status.half_move_ = 0;
             return;
         }
@@ -198,17 +229,30 @@ void UndoMove(Board& board, ExtMove move)
     Color ally_color{GetEnemyColor(status.cur_color_)};
     Color enemy_color{status.cur_color_};
 
+
+
     // Put the moved piece back on its origin square.
     if (move.IsPromotion())
     {
         RemovePieceNoHash(board, move.GetPromo(), to_sqr, ally_color);
         SetPieceNoHash(board, Piece::kPawn, from_sqr, ally_color);
+
+        Nnue::Sub(&board.acc.white_accumulator_, PieceToIndex(move.GetPromo(), to_sqr, ally_color, Color::kWhite));
+        Nnue::Sub(&board.acc.black_accumulator_, PieceToIndex(move.GetPromo(), to_sqr, ally_color, Color::kBlack));
+        Nnue::Add(&board.acc.white_accumulator_, PieceToIndex(Piece::kPawn, from_sqr, ally_color, Color::kWhite));
+        Nnue::Add(&board.acc.black_accumulator_, PieceToIndex(Piece::kPawn, from_sqr, ally_color, Color::kBlack));
     }
     else
     {
         Piece piece{board.GetPieceOnSquare(to_sqr)};
         MovePieceNoHash(board, piece, to_sqr, ally_color, from_sqr); //NOLINT
+
+        Nnue::Sub(&board.acc.white_accumulator_, PieceToIndex(piece, to_sqr, ally_color, Color::kWhite));
+        Nnue::Sub(&board.acc.black_accumulator_, PieceToIndex(piece, to_sqr, ally_color, Color::kBlack));
+        Nnue::Add(&board.acc.white_accumulator_, PieceToIndex(piece, from_sqr, ally_color, Color::kWhite));
+        Nnue::Add(&board.acc.black_accumulator_, PieceToIndex(piece, from_sqr, ally_color, Color::kBlack));
     }
+
 
     if (move.IsCastle())
     {
@@ -219,6 +263,11 @@ void UndoMove(Board& board, ExtMove move)
         rook_to = static_cast<Square>(static_cast<int>(rook_to) + (ally_color == Color::kWhite ? 0 : 56));
         rook_from = static_cast<Square>(static_cast<int>(rook_from) + (ally_color == Color::kWhite ? 0 : 56));
         MovePieceNoHash(board, Piece::kRook, rook_to, ally_color, rook_from);
+
+        Nnue::Sub(&board.acc.white_accumulator_, PieceToIndex(Piece::kRook, rook_to, ally_color, Color::kWhite));
+        Nnue::Sub(&board.acc.black_accumulator_, PieceToIndex(Piece::kRook, rook_to, ally_color, Color::kBlack));
+        Nnue::Add(&board.acc.white_accumulator_, PieceToIndex(Piece::kRook, rook_from, ally_color, Color::kWhite));
+        Nnue::Add(&board.acc.black_accumulator_, PieceToIndex(Piece::kRook, rook_from, ally_color, Color::kBlack));
     }
     else if (move.IsEnPassant())
     {
@@ -226,11 +275,17 @@ void UndoMove(Board& board, ExtMove move)
         int shift = (ally_color == Color::kWhite ? -8 : 8);
         auto captured_square{static_cast<Square>(static_cast<int>(to_sqr) + shift)};
         SetPieceNoHash(board, Piece::kPawn, captured_square, enemy_color);
+
+        Nnue::Add(&board.acc.white_accumulator_, PieceToIndex(Piece::kPawn, captured_square, enemy_color, Color::kWhite));
+        Nnue::Add(&board.acc.black_accumulator_, PieceToIndex(Piece::kPawn, captured_square, enemy_color, Color::kBlack));
     }
     else if (status.captured_piece_ != Piece::kNone)
     {
         // Covers normal captures and promotion-captures alike.
         SetPieceNoHash(board, status.captured_piece_, to_sqr, enemy_color);
+
+        Nnue::Add(&board.acc.white_accumulator_, PieceToIndex(status.captured_piece_, to_sqr, enemy_color, Color::kWhite));
+        Nnue::Add(&board.acc.black_accumulator_, PieceToIndex(status.captured_piece_, to_sqr, enemy_color, Color::kBlack));
     }
 
     // Everything else (hash, castling, ep, clocks, checkers/blockers) comes back with the pop.

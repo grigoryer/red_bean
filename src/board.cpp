@@ -2,6 +2,7 @@
 #include "checking.hpp"
 #include "debug.hpp"
 #include "global.hpp"
+#include "nnue.hpp"
 #include "zobrist.hpp"
 #include <cassert>
 #include <cctype>
@@ -117,25 +118,25 @@ void Board::ParseFenString(const std::string& fen_string)
             }
             case 'q': 
             {
-                temp_status.phase_num += kPhaseWeights[static_cast<size_t>(Piece::kQueen)];
+                // temp_status.phase_num += kPhaseWeights[static_cast<size_t>(Piece::kQueen)];
                 SetPieceOnSquare(Piece::kQueen, static_cast<Square>(cur_sqr));
                 SetPieceBB(Piece::kQueen, static_cast<Square>(cur_sqr++)); break; 
             }
             case 'r': 
             {
-                temp_status.phase_num += kPhaseWeights[static_cast<size_t>(Piece::kRook)];
+                // temp_status.phase_num += kPhaseWeights[static_cast<size_t>(Piece::kRook)];
                 SetPieceOnSquare(Piece::kRook, static_cast<Square>(cur_sqr));
                 SetPieceBB(Piece::kRook, static_cast<Square>(cur_sqr++)); break; 
             }
             case 'b': 
             {
-                temp_status.phase_num += kPhaseWeights[static_cast<size_t>(Piece::kBishop)];
+                // temp_status.phase_num += kPhaseWeights[static_cast<size_t>(Piece::kBishop)];
                 SetPieceOnSquare(Piece::kBishop, static_cast<Square>(cur_sqr));
                 SetPieceBB(Piece::kBishop, static_cast<Square>(cur_sqr++)); break; 
             }
             case 'n': 
             {
-                temp_status.phase_num += kPhaseWeights[static_cast<size_t>(Piece::kKnight)];
+                // temp_status.phase_num += kPhaseWeights[static_cast<size_t>(Piece::kKnight)];
                 SetPieceOnSquare(Piece::kKnight, static_cast<Square>(cur_sqr));
                 SetPieceBB(Piece::kKnight, static_cast<Square>(cur_sqr++)); break; 
             }
@@ -191,7 +192,9 @@ void Board::ResetBoard(const std::string& fen_string)
     ParseFenString(fen_string);
     Zobrist::InitailizBoardHash(*this);
     between::SetCheckersAndBlockers(*this, GetCurStatus());
-    status_history_[0].phase_num = std::min(kMaxPhase, status_history_[0].phase_num);
+    Nnue::InitAccumulator(&acc.white_accumulator_, *this, Color::kWhite);
+    Nnue::InitAccumulator(&acc.black_accumulator_, *this, Color::kBlack);
+    // status_history_[0].phase_num = std::min(kMaxPhase, status_history_[0].phase_num);
 }
 
 void Board::ResetBoard()

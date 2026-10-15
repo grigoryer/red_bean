@@ -45,8 +45,8 @@ enum class Piece : uint8_t
     kNone
 };
 
-constexpr std::array<int, kPieceCount> kPhaseWeights = { 4, 2, 1, 1, 0, 0 };  // Q R B N P K
-constexpr int kMaxPhase = 24;
+constexpr std::array<int8_t, kPieceCount> kPhaseWeights = { 4, 2, 1, 1, 0, 0 };  // Q R B N P K
+constexpr int8_t kMaxPhase = 24;
 
 constexpr Piece NumToPiece(size_t piece)
 {
