@@ -10,7 +10,7 @@
 int main() 
 {    
     // init neural net
-    if (!Nnue::InitNet("./weights/net.bin"))
+    if (!Nnue::InitNet())
     {
         return 1;
     }

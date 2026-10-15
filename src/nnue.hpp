@@ -83,5 +83,5 @@ namespace Nnue
 
     // Rebuilds the accumulator from scratch: bias + every active feature. Defined in nnue.cpp.
     void InitAccumulator(Accumulator* accumulator, Board& board, Color stm);
-    bool InitNet(const std::string& path);
+    bool InitNet();
 }
